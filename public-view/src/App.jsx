@@ -10,9 +10,13 @@ const VIEW_TABS = [
   { key: "companies", label: "Companies" },
 ];
 
-function formatCurrency(n) {
-  if (!n) return "$0";
-  return "$" + n.toLocaleString();
+function formatCurrencyPHP(n) {
+  const value = Number(n) || 0;
+  return value.toLocaleString("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  });
 }
 
 function buildWeekTabsForCurrentMonth(baseDate = new Date()) {
@@ -85,6 +89,13 @@ function formatWeekRange(displayRange) {
   const endDay = displayRange.end.getDate().toString().padStart(2, "0");
   const year = displayRange.end.getFullYear();
   return `${month} ${startDay} - ${month} ${endDay}, ${year}`;
+}
+
+function getInitials(name = "") {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function App() {
@@ -175,7 +186,7 @@ function App() {
           <div className="metric-cards">
             <MetricCard label="Leaders" value={metrics.entitiesCount} />
             <MetricCard label="Leads" value={metrics.totalLeads} />
-            <MetricCard label="Sales" value={formatCurrency(metrics.totalSales)} />
+            <MetricCard label="Sales" value={formatCurrencyPHP(metrics.totalSales)} />
           </div>
         </section>
 
@@ -205,11 +216,16 @@ function App() {
 
         {!loading && !error && (
           <>
-            {/* Podium */}
-            <Podium top3={top3} view={activeView} />
-
-            {/* Table */}
-            <LeaderboardTable rows={rows} view={activeView} />
+            {rows.length === 0 ? (
+              <div className="empty-state">
+                No data yet for this week.
+              </div>
+            ) : (
+              <>
+                <Podium top3={top3} view={activeView} />
+                <LeaderboardTable rows={rows} view={activeView} />
+              </>
+            )}
           </>
         )}
       </div>
@@ -266,7 +282,7 @@ function Podium({ top3, view }) {
                   {item.avatarUrl ? (
                     <img src={item.avatarUrl} alt={item.name} />
                   ) : (
-                    <span className="podium-avatar-placeholder" />
+                    <div className="avatar-initials">{getInitials(item.name)}</div>
                   )}
                 </div>
               </div>
@@ -278,7 +294,7 @@ function Podium({ top3, view }) {
             <div className="podium-stats">
               <div>{item.points.toFixed(1)} pts</div>
               <div>{item.leads} leads</div>
-              <div>{formatCurrency(item.sales)} sales</div>
+              <div>{formatCurrencyPHP(item.sales)} sales</div>
             </div>
           </motion.div>
         );
@@ -320,7 +336,9 @@ function LeaderboardTable({ rows, view }) {
                     {r.avatarUrl ? (
                       <img src={r.avatarUrl} alt={r.name} />
                     ) : (
-                      <span className="cell-avatar-placeholder" />
+                      <div className="avatar-initials avatar-initials--small">
+                        {getInitials(r.name)}
+                      </div>
                     )}
                   </span>
                 )}
@@ -328,7 +346,7 @@ function LeaderboardTable({ rows, view }) {
               </td>
               <td>{r.leads}</td>
               <td>{r.payins}</td>
-              <td>{formatCurrency(r.sales)}</td>
+              <td>{formatCurrencyPHP(r.sales)}</td>
               <td className="cell-right">{r.points.toFixed(1)}</td>
             </tr>
           ))}

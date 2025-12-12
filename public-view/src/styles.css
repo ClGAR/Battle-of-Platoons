@@ -213,7 +213,20 @@ body {
   color: #d62828;
 }
 
+
 /* Podium */
+
+.empty-state{
+  margin: 24px auto 0;
+  max-width: 720px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  padding: 18px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
 
 .podium {
   display: grid;
@@ -352,6 +365,22 @@ body {
   gap: 8px;
 }
 
+.avatar-initials{
+  width: 100%;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 700;
+  color: var(--blue-bg);
+  background: #d9ddff;
+}
+
+.avatar-initials--small{
+  font-size: 12px;
+  border-radius: 50%;
+}
+
 .cell-avatar {
   width: 28px;
   height: 28px;
@@ -401,8 +430,39 @@ body {
     justify-self: center;
   }
 
-  .podium {
-    grid-template-columns: 1fr;
+  .podium{
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .podium-card{
+    min-height: 170px;
+    padding: 14px 10px 14px;
+    border-radius: 18px;
+  }
+
+  /* make center (winner) taller */
+  .podium-card:nth-child(2){
+    min-height: 210px;
+  }
+
+  .podium-avatar{
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+  }
+
+  .podium-name{
+    font-size: 13px;
+  }
+
+  .podium-subtext{
+    font-size: 12px;
+  }
+
+  .podium-stats{
+    font-size: 12px;
   }
 
   .metric-cards {
