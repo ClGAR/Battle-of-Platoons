@@ -93,7 +93,7 @@ function formatWeekRange(displayRange) {
 
 function getInitials(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
+  if (!parts.length) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
@@ -276,17 +276,15 @@ function Podium({ top3, view }) {
             transition={{ duration: 0.4, delay: index * 0.1 }}
           >
             <div className="podium-rank">{rank}</div>
-            {view === "leaders" && (
-              <div className="podium-avatar-wrapper">
-                <div className="podium-avatar">
-                  {item.avatarUrl ? (
-                    <img src={item.avatarUrl} alt={item.name} />
-                  ) : (
-                    <div className="avatar-initials">{getInitials(item.name)}</div>
-                  )}
-                </div>
+            <div className="podium-avatar-wrapper">
+              <div className="podium-avatar">
+                {item.avatarUrl ? (
+                  <img src={item.avatarUrl} alt={item.name} />
+                ) : (
+                  <div className="podium-initials">{getInitials(item.name)}</div>
+                )}
               </div>
-            )}
+            </div>
             <div className="podium-name">{item.name}</div>
             {view === "leaders" && item.platoon && (
               <div className="podium-subtext">{item.platoon}</div>
@@ -331,18 +329,26 @@ function LeaderboardTable({ rows, view }) {
             <tr key={`${view}-${r.rank}-${r.key}`}>
               <td className="cell-rank">{r.rank}</td>
               <td className="cell-name">
-                {view === "leaders" && (
-                  <span className="cell-avatar">
+                <div className="row-name">
+                  <div className="row-avatar">
                     {r.avatarUrl ? (
                       <img src={r.avatarUrl} alt={r.name} />
                     ) : (
-                      <div className="avatar-initials avatar-initials--small">
+                      <span className="row-initials">
                         {getInitials(r.name)}
-                      </div>
+                      </span>
                     )}
-                  </span>
-                )}
-                <span>{r.name}</span>
+                  </div>
+
+                  <div className="row-labels">
+                    <div className="row-title">{r.name}</div>
+
+                    {/* show platoon only for leaders */}
+                    {view === "leaders" && r.platoon && (
+                      <div className="row-sub">{r.platoon}</div>
+                    )}
+                  </div>
+                </div>
               </td>
               <td>{r.leads}</td>
               <td>{r.payins}</td>

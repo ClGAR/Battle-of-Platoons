@@ -276,20 +276,37 @@ body {
   margin-bottom: 8px;
 }
 
-.podium-avatar {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto;
-  border-radius: 16px;
+.podium-avatar, .row-avatar{
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
   overflow: hidden;
-  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.12);
+  flex-shrink: 0;
 }
 
-.podium-avatar img {
+.podium-avatar img, .row-avatar img{
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
+.podium-initials, .row-initials{
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.row-name{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.row-title{ font-weight: 800; }
+.row-sub{ opacity:.75; font-size: 12px; margin-top:2px; }
 
 .podium-avatar-placeholder {
   display: block;
