@@ -1,7 +1,7 @@
 // src/App.jsx
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getLeaderboard } from "./services/leaderboardService";
+import { getLeaderboard } from "./services/leaderboard.service";
 import "./styles.css";
 
 const VIEW_TABS = [
@@ -17,6 +17,13 @@ function formatCurrencyPHP(n) {
     currency: "PHP",
     maximumFractionDigits: 0,
   });
+}
+
+function toYMD(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function buildWeekTabsForCurrentMonth(baseDate = new Date()) {
@@ -116,7 +123,13 @@ function App() {
       setError("");
       try {
         const week = weekTabs.find((w) => w.key === activeWeek);
-        const result = await getLeaderboard(week?.range || null, activeView);
+        const range = week?.range;
+        const result = await getLeaderboard({
+          startDate: toYMD(range.start),
+          endDate: toYMD(range.end),
+          groupBy: activeView,
+        });
+
         if (!isCancelled) setData(result);
       } catch (e) {
         console.error(e);
