@@ -48,6 +48,15 @@ export default function Upload() {
     handleFile(file);
   }
 
+  function downloadTemplate() {
+  const a = document.createElement("a");
+  a.href = "/Leaderboard_Template.xlsx";
+  a.download = "Leaderboard_Template.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
   async function handleSave() {
     const validRows = rows.filter(r => r.status === "valid");
     setProgress({ done: 0, total: validRows.length });
@@ -74,9 +83,10 @@ export default function Upload() {
             <div className="muted">Sheet name "Daily Data" (or first sheet)</div>
           </div>
         </label>
-        <a className="button secondary" href="#" target="_blank" rel="noreferrer">
+       <button className="btn" type="button" onClick={downloadTemplate}>
           Download Template
-        </a>
+        </button>
+
       </div>
 
       {fileName ? (
