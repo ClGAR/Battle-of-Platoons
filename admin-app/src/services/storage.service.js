@@ -22,6 +22,12 @@ export function getPublicUrl(path) {
 }
 
 export async function uploadAvatar({ entityType, entityId, file }) {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (!sessionData?.session) {
+    throw new Error("You must be logged in (Supabase Auth) to upload photos.");
+  }
+
   const ext = getExtension(file);
   const path = `${entityType}/${entityId}/main.${ext}`;
 

@@ -228,7 +228,9 @@ export default function Participants() {
         } catch (uploadErr) {
           console.error(uploadErr);
           setLeaderUploading(false);
-          return err("Upload failed. Please try again.");
+          const message = `${uploadErr?.message || "Upload failed."} Check Supabase auth/RLS permissions.`;
+          setLeaderPhotoError(message);
+          return err(message);
         }
       } else if (leaderPhotoMode === "url") {
         photoURL = urlInput;
@@ -345,7 +347,9 @@ export default function Participants() {
         } catch (uploadErr) {
           console.error(uploadErr);
           setSimpleUploading(false);
-          return err("Upload failed. Please try again.");
+          const message = `${uploadErr?.message || "Upload failed."} Check Supabase auth/RLS permissions.`;
+          setSimplePhotoError(message);
+          return err(message);
         }
       } else if (simplePhotoMode === "url") {
         payload.photoURL = urlInput;
@@ -451,7 +455,9 @@ export default function Participants() {
         } catch (uploadErr) {
           console.error(uploadErr);
           setPlatoonUploading(false);
-          return err("Upload failed. Please try again.");
+          const message = `${uploadErr?.message || "Upload failed."} Check Supabase auth/RLS permissions.`;
+          setPlatoonPhotoError(message);
+          return err(message);
         }
       } else if (platoonPhotoMode === "url") {
         payload.photoURL = urlInput;
