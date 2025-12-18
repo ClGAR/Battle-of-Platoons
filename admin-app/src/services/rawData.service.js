@@ -1,5 +1,8 @@
 import * as XLSX from "xlsx";
 import { listAgents } from "./agents.service";
+import { listCompanies } from "./companies.service";
+import { listDepots } from "./depots.service";
+import { listPlatoons } from "./platoons.service";
 import { supabase } from "./supabase";
 
 const HEADER_ALIASES = {
@@ -38,32 +41,64 @@ function normalizeName(name = "") {
     .replace(/\s+/g, " ");
 }
 
-function parseDateValue(value, errors) {
+function formatDateParts(year, month, day) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function validateDateParts(year, month, day) {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return formatDateParts(y, m, d);
+}
+
+function parseDateCell(value) {
   if (value === null || value === undefined || value === "") {
-    errors.push("Missing Date");
-    return { date: "", original: value };
+    return { dateReal: null, originalValue: value, error: "Missing Date" };
   }
 
   if (value instanceof Date) {
-    return { date: value.toISOString().slice(0, 10), original: value }; // already a Date
+    const y = value.getFullYear();
+    const m = value.getMonth() + 1;
+    const d = value.getDate();
+    return { dateReal: formatDateParts(y, m, d), originalValue: value };
   }
 
   if (typeof value === "number") {
     const parsed = XLSX.SSF.parse_date_code(value);
-    if (parsed) {
-      const date = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
-      return { date: date.toISOString().slice(0, 10), original: value };
+    if (parsed && parsed.y && parsed.m && parsed.d) {
+      return { dateReal: formatDateParts(parsed.y, parsed.m, parsed.d), originalValue: value };
     }
+    return { dateReal: null, originalValue: value, error: "Invalid Date" };
   }
 
   const str = value.toString().trim();
-  const dateObj = new Date(str);
-  if (!Number.isNaN(dateObj.getTime())) {
-    return { date: dateObj.toISOString().slice(0, 10), original: value };
+  if (!str) {
+    return { dateReal: null, originalValue: value, error: "Missing Date" };
   }
 
-  errors.push("Invalid Date");
-  return { date: "", original: value };
+  const ymdMatch = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(str);
+  if (ymdMatch) {
+    const [, y, m, d] = ymdMatch;
+    const formatted = validateDateParts(Number(y), Number(m), Number(d));
+    if (formatted) return { dateReal: formatted, originalValue: value };
+    return { dateReal: null, originalValue: value, error: "Invalid Date" };
+  }
+
+  const mdyMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(str);
+  if (mdyMatch) {
+    const [, m, d, y] = mdyMatch;
+    const formatted = validateDateParts(Number(y), Number(m), Number(d));
+    if (formatted) return { dateReal: formatted, originalValue: value };
+    return { dateReal: null, originalValue: value, error: "Invalid Date" };
+  }
+
+  return { dateReal: null, originalValue: value, error: "Invalid Date" };
 }
 
 function parseNumber(value, field, errors) {
@@ -117,6 +152,89 @@ function resolveAgent(agentIdInput, leaderNameInput, lookups, errors) {
   return "";
 }
 
+function normalizeAgentRecord(agent = {}) {
+  return {
+    id: agent.id,
+    name: agent.name ?? "",
+    depotId: agent.depotId ?? agent.depot_id ?? agent.depot ?? "",
+    companyId: agent.companyId ?? agent.company_id ?? agent.company ?? "",
+    platoonId: agent.platoonId ?? agent.platoon_id ?? agent.platoon ?? "",
+  };
+}
+
+async function fetchAgentsByIds(ids = []) {
+  if (!ids.length) return new Map();
+  const { data, error } = await supabase
+    .from("agents")
+    .select("id,name,depotId,depot_id,depot,companyId,company_id,company,platoonId,platoon_id,platoon")
+    .in("id", ids);
+  if (error) throw error;
+
+  const map = new Map();
+  (data ?? []).forEach(agent => {
+    const normalized = normalizeAgentRecord(agent);
+    map.set(normalized.id, normalized);
+  });
+  return map;
+}
+
+async function fetchLookupMaps() {
+  const [depots, companies, platoons] = await Promise.all([
+    listDepots(),
+    listCompanies(),
+    listPlatoons(),
+  ]);
+
+  const depotNames = Object.fromEntries(depots.map(d => [d.id, d.name]));
+  const companyNames = Object.fromEntries(companies.map(c => [c.id, c.name]));
+  const platoonNames = Object.fromEntries(platoons.map(p => [p.id, p.name]));
+
+  return { depotNames, companyNames, platoonNames };
+}
+
+async function enrichRawDataRows(rows = []) {
+  if (!rows.length) return [];
+
+  const agentMap = new Map();
+  rows.forEach(row => {
+    if (row.agents && row.agent_id) {
+      const normalized = normalizeAgentRecord(row.agents);
+      agentMap.set(row.agent_id, normalized);
+    }
+  });
+
+  const missingAgentIds = Array.from(
+    new Set(rows.map(r => r.agent_id).filter(id => id && !agentMap.has(id)))
+  );
+
+  if (missingAgentIds.length) {
+    const fetchedMap = await fetchAgentsByIds(missingAgentIds);
+    fetchedMap.forEach((value, key) => agentMap.set(key, value));
+  }
+
+  const { depotNames, companyNames, platoonNames } = await fetchLookupMaps();
+
+  return rows.map(row => {
+    const agent = agentMap.get(row.agent_id) ?? {};
+    const depotName = depotNames[agent.depotId] ?? "";
+    const companyName = companyNames[agent.companyId] ?? "";
+    const platoonName = platoonNames[agent.platoonId] ?? "";
+
+    return {
+      id: row.id,
+      date_real: row.date_real,
+      agent_id: row.agent_id,
+      leads: row.leads ?? 0,
+      payins: row.payins ?? 0,
+      sales: row.sales ?? 0,
+      leaderName: agent.name ?? "",
+      depotName,
+      companyName,
+      platoonName,
+    };
+  });
+}
+
 export async function parseRawDataWorkbook(file) {
   if (!file) throw new Error("File is required");
 
@@ -151,7 +269,8 @@ export async function parseRawDataWorkbook(file) {
     const errors = [];
 
     const dateCell = rawRow[headerMap.date];
-    const { date: date_real, original: originalDate } = parseDateValue(dateCell, errors);
+    const { dateReal, originalValue: originalDate, error: dateError } = parseDateCell(dateCell);
+    if (dateError) errors.push(dateError);
 
     const leads = parseNumber(rawRow[headerMap.leads], "Leads", errors);
     const payins = parseNumber(rawRow[headerMap.payins], "Payins", errors);
@@ -162,13 +281,18 @@ export async function parseRawDataWorkbook(file) {
 
     const resolved_agent_id = resolveAgent(agent_id_input, leader_name_input, lookups, errors);
 
+    const date_real = dateReal ?? "";
+    const computed_id = `${date_real}_${resolved_agent_id}`;
+
     return {
+      displayIndex: idx + 1,
       sourceRowIndex: idx + 2, // +2 to account for header row and 1-indexing
       date_real,
       date_original: originalDate,
       agent_id_input: agent_id_input?.toString().trim() ?? "",
       leader_name_input: leader_name_input?.toString().trim() ?? "",
       resolved_agent_id,
+      computed_id,
       leads,
       payins,
       sales,
@@ -190,17 +314,20 @@ export async function saveRawDataRows(validRows, onProgress = () => {}) {
   const now = new Date().toISOString();
 
   for (let i = 0; i < validRows.length; i += batchSize) {
-    const batch = validRows.slice(i, i + batchSize).map(row => ({
-      id: `${row.date_real}_${row.resolved_agent_id}`,
-      agent_id: row.resolved_agent_id,
-      leads: row.leads,
-      payins: row.payins,
-      sales: row.sales,
-      date_real: row.date_real,
-      date: { source: "xlsx", original: row.date_original ?? row.date_real },
-      createdAt: { iso: now },
-      updatedAt: { iso: now },
-    }));
+    const batch = validRows.slice(i, i + batchSize).map(row => {
+      const id = row.computed_id || `${row.date_real}_${row.resolved_agent_id}`;
+      return {
+        id,
+        agent_id: row.resolved_agent_id,
+        leads: row.leads,
+        payins: row.payins,
+        sales: row.sales,
+        date_real: row.date_real,
+        date: { source: "xlsx", original: row.date_original ?? row.date_real },
+        createdAt: { iso: now },
+        updatedAt: { iso: now },
+      };
+    });
 
     const { data, error } = await supabase.from("raw_data").upsert(batch, { onConflict: "id" }).select();
     if (error) {
@@ -213,4 +340,52 @@ export async function saveRawDataRows(validRows, onProgress = () => {}) {
   }
 
   return { upsertedCount, errors };
+}
+
+function applyRawDataFilters(query, { dateFrom, dateTo, agentId, limit = 200 }) {
+  let q = query;
+  if (dateFrom) q = q.gte("date_real", dateFrom);
+  if (dateTo) q = q.lte("date_real", dateTo);
+  if (agentId) q = q.eq("agent_id", agentId);
+  const safeLimit = Number(limit) || 200;
+  q = q.order("date_real", { ascending: false }).limit(safeLimit);
+  return q;
+}
+
+export async function listRawData({ dateFrom, dateTo, agentId, limit = 200 } = {}) {
+  const baseSelect = "id,date_real,agent_id,leads,payins,sales,agents:agent_id (id,name,depotId,companyId,platoonId)";
+
+  try {
+    const { data, error } = await applyRawDataFilters(
+      supabase.from("raw_data").select(baseSelect),
+      { dateFrom, dateTo, agentId, limit }
+    );
+    if (error) throw error;
+    return enrichRawDataRows(data ?? []);
+  } catch (joinError) {
+    const { data, error } = await applyRawDataFilters(
+      supabase.from("raw_data").select("id,date_real,agent_id,leads,payins,sales"),
+      { dateFrom, dateTo, agentId, limit }
+    );
+    if (error) throw error;
+    return enrichRawDataRows(data ?? []);
+  }
+}
+
+export async function updateRawData(id, { leads, payins, sales }) {
+  const { data, error } = await supabase
+    .from("raw_data")
+    .update({ leads, payins, sales })
+    .eq("id", id)
+    .select("id,date_real,agent_id,leads,payins,sales")
+    .single();
+  if (error) throw error;
+
+  const [enriched] = await enrichRawDataRows([data]);
+  return enriched;
+}
+
+export async function deleteRawData(id) {
+  const { error } = await supabase.from("raw_data").delete().eq("id", id);
+  if (error) throw error;
 }
