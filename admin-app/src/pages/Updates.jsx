@@ -168,6 +168,7 @@ export default function Updates() {
   async function applyFilters(customFilters = filtersInput) {
     const normalizedFilters = { ...initialFilters, ...customFilters };
 
+    // Applied filters drive the visible row filtering.
     setFiltersApplied(normalizedFilters);
     setLoading(true);
     setError("");
