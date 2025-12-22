@@ -7,7 +7,7 @@ import "./styles.css";
 const VIEW_TABS = [
   { key: "depots", label: "Depots" },
   { key: "leaders", label: "Leaders" },
-  { key: "companies", label: "Companies" },
+  { key: "companies", label: "Commanders" },
 ];
 
 const LEADER_ROLE_TABS = [
@@ -162,13 +162,14 @@ function App() {
   const rows = data?.rows || [];
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
+  const entitiesLabel = activeView === "companies" ? "Commanders" : activeView === "depots" ? "Depots" : "Leaders";
 
   const title =
     activeView === "leaders"
       ? "Platoon Leader Rankings"
       : activeView === "depots"
       ? "Depot Rankings"
-      : "Company Rankings";
+      : "Commander Rankings";
 
   return (
     <div className="page">
@@ -205,7 +206,7 @@ function App() {
           </div>
 
           <div className="metric-cards">
-            <MetricCard label="Leaders" value={metrics.entitiesCount} />
+            <MetricCard label={entitiesLabel} value={metrics.entitiesCount} />
             <MetricCard label="Leads" value={metrics.totalLeads} />
             <MetricCard label="Sales" value={formatCurrencyPHP(metrics.totalSales)} />
           </div>
@@ -346,7 +347,7 @@ function LeaderboardTable({ rows, view }) {
       ? "Leader Name"
       : view === "depots"
       ? "Depot"
-      : "Company";
+      : "Commander";
 
   return (
     <div className="table-wrapper">

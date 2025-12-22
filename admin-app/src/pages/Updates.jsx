@@ -67,8 +67,8 @@ function toTsYmd(ymd) {
 const TABS = [
   { key: "leaders", label: "Leaders" },
   { key: "depots", label: "Depots" },
-  { key: "companies", label: "Companies" },
-  { key: "platoons", label: "Platoons" },
+  { key: "companies", label: "Commanders" },
+  { key: "platoons", label: "Teams" },
 ];
 
 const initialFilters = {
@@ -212,10 +212,10 @@ export default function Updates() {
         label = r.depotName || a?.depot?.name || a?.depotId || "Unknown depot";
       } else if (activeTab === "companies") {
         value = a?.companyId || "";
-        label = r.companyName || a?.company?.name || a?.companyId || "Unknown company";
+        label = r.companyName || a?.company?.name || a?.companyId || "Unknown commander";
       } else if (activeTab === "platoons") {
         value = a?.platoonId || "";
-        label = r.platoonName || a?.platoon?.name || a?.platoonId || "Unknown platoon";
+        label = r.platoonName || a?.platoon?.name || a?.platoonId || "Unknown team";
       }
 
       if (!value) continue;
@@ -418,8 +418,8 @@ export default function Updates() {
       : activeTab === "depots"
       ? "Depot"
       : activeTab === "companies"
-      ? "Company"
-      : "Platoon";
+      ? "Commander"
+      : "Team";
 
   const filterLabel =
     activeTab === "leaders"
@@ -427,8 +427,8 @@ export default function Updates() {
       : activeTab === "depots"
       ? "Depot"
       : activeTab === "companies"
-      ? "Company"
-      : "Platoon";
+      ? "Commander"
+      : "Team";
 
   function renderStatus(row) {
     if (row.voided) {

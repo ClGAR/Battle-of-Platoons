@@ -231,8 +231,8 @@ export default function Participants() {
     const name = leaderForm.name.trim();
     if (!name) return err("Leader name required.");
     if (!leaderForm.depotId) return err("Select a depot.");
-    if (!leaderForm.companyId) return err("Select a company.");
-    if (!leaderForm.platoonId) return err("Select a platoon.");
+    if (!leaderForm.companyId) return err("Select a commander.");
+    if (!leaderForm.platoonId) return err("Select a team.");
 
     const urlInput = leaderPhotoUrlInput.trim();
     if (leaderPhotoFile && urlInput) {
@@ -468,7 +468,7 @@ export default function Participants() {
     setPlatoonPhotoError("");
 
     const name = platoonForm.name.trim();
-    if (!name) return err("Platoon name required.");
+    if (!name) return err("Team name required.");
 
     const urlInput = platoonPhotoUrlInput.trim();
     if (platoonPhotoFile && urlInput) {
@@ -507,7 +507,7 @@ export default function Participants() {
 
       await upsertPlatoon(id, payload);
       await fetchPlatoons();
-      ok(platoonForm.id ? "Platoon updated." : "Platoon added.");
+      ok(platoonForm.id ? "Team updated." : "Team added.");
       clearPlatoon();
     } catch (e2) {
       console.error(e2);
@@ -541,13 +541,13 @@ export default function Participants() {
             Leaders
           </button>
           <button className={`p-tab ${tab === "companies" ? "active" : ""}`} onClick={() => { setTab("companies"); clearSimple(); }}>
-            Companies
+            Commanders
           </button>
           <button className={`p-tab ${tab === "depots" ? "active" : ""}`} onClick={() => { setTab("depots"); clearSimple(); }}>
             Depots
           </button>
           <button className={`p-tab ${tab === "platoons" ? "active" : ""}`} onClick={() => { setTab("platoons"); clearPlatoon(); }}>
-            Platoons
+            Teams
           </button>
         </div>
 
@@ -609,17 +609,17 @@ export default function Participants() {
               </div>
 
               <div className="field">
-                <label>Company</label>
+                <label>Commander</label>
                 <select value={leaderForm.companyId} onChange={(e) => setLeaderForm(s => ({ ...s, companyId: e.target.value }))}>
-                  <option value="">Select company…</option>
+                  <option value="">Select commander…</option>
                   {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
               <div className="field">
-                <label>Platoon</label>
+                <label>Team</label>
                 <select value={leaderForm.platoonId} onChange={(e) => setLeaderForm(s => ({ ...s, platoonId: e.target.value }))}>
-                  <option value="">Select platoon…</option>
+                  <option value="">Select team…</option>
                   {platoons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
@@ -726,7 +726,7 @@ export default function Participants() {
 
       {(tab === "companies" || tab === "depots") && (
         <div className="card">
-          <div className="card-title">{simpleForm.id ? `Edit ${tab === "companies" ? "Company" : "Depot"}` : `Add ${tab === "companies" ? "Company" : "Depot"}`}</div>
+          <div className="card-title">{simpleForm.id ? `Edit ${tab === "companies" ? "Commander" : "Depot"}` : `Add ${tab === "companies" ? "Commander" : "Depot"}`}</div>
 
           <form className="form" onSubmit={saveSimple}>
             <div className="grid">
@@ -827,7 +827,7 @@ export default function Participants() {
 
       {tab === "platoons" && (
         <div className="card">
-          <div className="card-title">{platoonForm.id ? "Edit Platoon" : "Add Platoon"}</div>
+          <div className="card-title">{platoonForm.id ? "Edit Team" : "Add Team"}</div>
 
           <form className="form" onSubmit={savePlatoon}>
             <div className="grid">
@@ -932,7 +932,7 @@ export default function Participants() {
           <div className="card-title">Leaders List</div>
           <div className="table">
             <div className="t-head">
-              <div>Leader</div><div>Depot</div><div>Company</div><div>Platoon</div><div className="t-right">Actions</div>
+              <div>Leader</div><div>Depot</div><div>Commander</div><div>Team</div><div className="t-right">Actions</div>
             </div>
 
             {agents.map(a => (
@@ -984,10 +984,10 @@ export default function Participants() {
 
       {tab === "companies" && (
         <div className="card">
-          <div className="card-title">Companies List</div>
+          <div className="card-title">Commanders List</div>
           <div className="table">
             <div className="t-head">
-              <div>Company</div><div>Photo</div><div></div><div></div><div className="t-right">Actions</div>
+              <div>Commander</div><div>Photo</div><div></div><div></div><div className="t-right">Actions</div>
             </div>
 
             {companies.map(c => (
@@ -1011,10 +1011,10 @@ export default function Participants() {
 
       {tab === "platoons" && (
         <div className="card">
-          <div className="card-title">Platoons List</div>
+          <div className="card-title">Teams List</div>
           <div className="table">
             <div className="t-head">
-              <div>Platoon</div><div></div><div></div><div></div><div className="t-right">Actions</div>
+              <div>Team</div><div></div><div></div><div></div><div className="t-right">Actions</div>
             </div>
 
             {platoons.map(p => (
