@@ -600,9 +600,6 @@ export default function Participants() {
                   placeholder="Auto from name. Add suffix for uniqueness (e.g., juan-dela-cruz-2)."
                   readOnly
                 />
-                <div className="field-hint">
-                  Auto from name. Add suffix for uniqueness (e.g., juan-dela-cruz-2).
-                </div>
               </div>
 
               <div className="field">
