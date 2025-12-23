@@ -160,9 +160,9 @@ export default function Participants() {
   function err(msg) { setStatus({ type: "error", msg }); }
 
   // ---- Leaders (agents)
-  const leaderIdPreview = useMemo(
-    () => slugId(leaderForm.id || leaderForm.name),
-    [leaderForm.id, leaderForm.name]
+  const leaderBaseSlug = useMemo(
+    () => slugId(leaderForm.name),
+    [leaderForm.name]
   );
   const leaderNameNormalized = useMemo(
     () => normalizeName(leaderForm.name),
@@ -170,18 +170,29 @@ export default function Participants() {
   );
   const isEditingLeader = !!leaderOriginalId;
 
+  const leaderSuggestedId = useMemo(() => {
+    if (isEditingLeader) return leaderOriginalId || leaderBaseSlug;
+    if (!leaderBaseSlug) return "";
+    if (!agents.some(a => a.id === leaderBaseSlug)) return leaderBaseSlug;
+    let suffix = 2;
+    while (agents.some(a => a.id === `${leaderBaseSlug}-${suffix}`)) {
+      suffix += 1;
+    }
+    return `${leaderBaseSlug}-${suffix}`;
+  }, [agents, isEditingLeader, leaderBaseSlug, leaderOriginalId]);
+
   const leaderIdConflict = useMemo(
-    () => !!leaderIdPreview && agents.some(a => a.id === leaderIdPreview && a.id !== leaderOriginalId),
-    [agents, leaderIdPreview, leaderOriginalId]
+    () => !isEditingLeader && !!leaderSuggestedId && agents.some(a => a.id === leaderSuggestedId),
+    [agents, isEditingLeader, leaderSuggestedId]
   );
 
   const leaderNameConflict = useMemo(
     () => !!leaderNameNormalized && agents.some(a => {
       if (normalizeName(a.name) !== leaderNameNormalized) return false;
-      if (isEditingLeader && leaderIdPreview === leaderOriginalId && a.id === leaderOriginalId) return false;
-      return a.id !== leaderIdPreview;
+      if (isEditingLeader && a.id === leaderOriginalId) return false;
+      return a.id !== leaderSuggestedId;
     }),
-    [agents, isEditingLeader, leaderIdPreview, leaderNameNormalized, leaderOriginalId]
+    [agents, isEditingLeader, leaderNameNormalized, leaderOriginalId, leaderSuggestedId]
   );
 
   function handleLeaderModeChange(mode) {
@@ -241,12 +252,9 @@ export default function Participants() {
       return err(message);
     }
 
-    const id = leaderIdPreview;
+    const id = isEditingLeader ? leaderOriginalId : leaderSuggestedId;
     if (!id) return err("Agent ID is required. Change the name or add a unique suffix.");
     if (leaderIdConflict) return err("Agent ID already exists. Change the name or add a unique suffix.");
-    if (leaderNameConflict) {
-      setStatus({ type: "warn", msg: "Another leader with the same name exists. Use agent_id in uploads to avoid ambiguity." });
-    }
     const fileError = validateFile(leaderPhotoFile);
     if (fileError) {
       setLeaderPhotoError(fileError);
@@ -585,19 +593,16 @@ export default function Participants() {
               </div>
 
               <div className="field">
-                <label>Agent ID (optional)</label>
+                <label>Agent ID</label>
                 <input
-                  value={leaderForm.id}
+                  value={leaderSuggestedId}
                   className={leaderIdConflict ? "input-error" : ""}
                   placeholder="Auto from name. Add suffix for uniqueness (e.g., juan-dela-cruz-2)."
-                  onChange={(e) => setLeaderForm(s => ({ ...s, id: slugId(e.target.value) }))}
+                  readOnly
                 />
                 <div className="field-hint">
                   Auto from name. Add suffix for uniqueness (e.g., juan-dela-cruz-2).
                 </div>
-                {leaderIdConflict && (
-                  <div className="field-error">Agent ID already exists. Change the name or add a unique suffix.</div>
-                )}
               </div>
 
               <div className="field">
@@ -712,9 +717,11 @@ export default function Participants() {
               </div>
             </div>
 
-            {!leaderIdConflict && leaderNameConflict && (
+            {leaderIdConflict ? (
+              <div className="p-status warn">Agent ID already exists. Change the name or add a unique suffix.</div>
+            ) : leaderNameConflict ? (
               <div className="p-status warn">Another leader with the same name exists. Use agent_id in uploads to avoid ambiguity.</div>
-            )}
+            ) : null}
 
             <div className="actions">
               <button className="btn-primary" type="submit" disabled={leaderUploading || leaderIdConflict}>{isEditingLeader ? "Save Changes" : "Save"}</button>
