@@ -16,11 +16,14 @@ export default function Upload() {
 
   const processed = useMemo(() => {
     const displayRows = rows.map(row => {
-      const displayWarnings = row.warnings ?? [];
+      const displayWarnings = [];
       const displayErrors = [...(row.errors ?? [])];
+      if (row.suggestions?.length) {
+        displayErrors.push(`Suggestions: ${row.suggestions.join("; ")}`);
+      }
       let displayStatus = "Valid";
       let statusTone = "valid";
-      let isValidForSave = row.status === "valid";
+      let isValidForSave = row.status === "valid" && row.resolved_agent_id;
 
       if (row.status === "invalid") {
         displayStatus = "Invalid";
@@ -30,11 +33,15 @@ export default function Upload() {
         if (importMode === "insert_only") {
           displayStatus = "Invalid";
           statusTone = "invalid";
-          displayErrors.push("Duplicate ID exists");
+          displayErrors.push("Duplicate (skipped)");
           isValidForSave = false;
-        } else {
-          displayStatus = "Duplicate (Existing)";
+        } else if (importMode === "warn") {
+          displayStatus = "Duplicate (will overwrite)";
           statusTone = "duplicate";
+          displayWarnings.push("Duplicate (will overwrite)");
+        } else {
+          displayStatus = "Valid";
+          statusTone = "valid";
         }
       }
 
@@ -258,9 +265,9 @@ export default function Upload() {
                 <tr>
                   <th>#</th>
                   <th>Date</th>
-                  <th>agent_id</th>
+                  <th>leader_name</th>
+                  <th>Resolved ID</th>
                   <th>Computed ID</th>
-                  <th>Leader Name</th>
                   <th>Leads</th>
                   <th>Payins</th>
                   <th>Sales</th>
@@ -277,20 +284,22 @@ export default function Upload() {
 
                   return (
                     <tr
-                      key={`${row.displayIndex}-${row.sourceRowIndex}`}
+                      key={`${row.excelRowNumber}-${row.sourceRowIndex}`}
                       className={row.displayStatus === "Invalid" ? "row-invalid" : ""}
                     >
                     <td>
-                      <div>{row.displayIndex}</div>
+                      <div>{row.excelRowNumber}</div>
                     </td>
                     <td>{row.date_real || "—"}</td>
                     <td>
-                      <div>{row.resolved_agent_id || row.agent_id_input || ""}</div>
+                      <div>{row.leader_name_input}</div>
                     </td>
                     <td>
-                      <div className="muted" style={{ fontSize: 12 }}>{row.computed_id}</div>
+                      <div>{row.resolved_agent_id || ""}</div>
                     </td>
-                    <td>{row.leader_name_input}</td>
+                    <td>
+                      <div className="muted" style={{ fontSize: 12 }}>{row.computedId}</div>
+                    </td>
                     <td>{row.leads}</td>
                     <td>{row.payins}</td>
                     <td>{row.sales}</td>

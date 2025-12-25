@@ -6,7 +6,6 @@ import { listPlatoons } from "./platoons.service";
 import { supabase } from "./supabase";
 
 const HEADER_ALIASES = {
-  agent_id: ["agent_id", "agentid", "agent", "agent id"],
   leader_name: ["leader", "leader_name", "platoon_leader", "platoon leader", "name"],
   date: ["date"],
   leads: ["leads"],
@@ -14,7 +13,7 @@ const HEADER_ALIASES = {
   sales: ["sales"],
 };
 
-const REQUIRED_FIELDS = ["date", "leads", "payins", "sales"];
+const REQUIRED_FIELDS = ["date", "leader_name", "leads", "payins", "sales"];
 
 function normalizeHeaderName(header = "") {
   return header
@@ -37,7 +36,7 @@ function normalizeName(name = "") {
     .toString()
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s]+/g, "")
+    .replace(/[.,'"()[\]{}]/g, "")
     .replace(/\s+/g, " ");
 }
 
@@ -124,32 +123,38 @@ async function buildAgentLookups() {
   return { byId, byName };
 }
 
-function resolveAgent(agentIdInput, leaderNameInput, lookups, errors) {
-  const agentId = agentIdInput?.toString().trim();
+function buildSuggestion(agent, lookupMaps) {
+  const details = [];
+  const depotName = lookupMaps.depotNames?.[agent.depotId];
+  const companyName = lookupMaps.companyNames?.[agent.companyId];
+  const platoonName = lookupMaps.platoonNames?.[agent.platoonId];
+  if (companyName) details.push(companyName);
+  if (platoonName) details.push(platoonName);
+  if (depotName) details.push(depotName);
+  const detailText = details.length ? ` (${details.join(" / ")})` : "";
+  return `${agent.name} — ${agent.id}${detailText}`;
+}
+
+function resolveLeaderName(leaderNameInput, lookups, lookupMaps, errors) {
   const leaderName = leaderNameInput?.toString().trim();
-
-  if (agentId) {
-    if (lookups.byId.has(agentId)) {
-      return agentId;
-    }
-    errors.push("agent_id not found");
-    return "";
+  if (!leaderName) {
+    errors.push("Missing leader name");
+    return { resolvedId: "", suggestions: [] };
   }
 
-  if (leaderName) {
-    const normName = normalizeName(leaderName);
-    const matches = lookups.byName.get(normName) ?? [];
-    if (matches.length === 1) return matches[0].id;
-    if (matches.length > 1) {
-      errors.push("Ambiguous leader name: matches multiple agents. Use agent_id.");
-      return "";
-    }
-    errors.push("Leader name not found");
-    return "";
+  const normName = normalizeName(leaderName);
+  const matches = lookups.byName.get(normName) ?? [];
+  if (matches.length === 1) return { resolvedId: matches[0].id, suggestions: [] };
+  if (matches.length > 1) {
+    errors.push(
+      "Ambiguous leader name. Matches multiple participants. Please rename participant for uniqueness."
+    );
+    const suggestions = matches.slice(0, 5).map(agent => buildSuggestion(agent, lookupMaps));
+    return { resolvedId: "", suggestions };
   }
 
-  errors.push("Missing agent_id or leader_name");
-  return "";
+  errors.push("Leader not found");
+  return { resolvedId: "", suggestions: [] };
 }
 
 function normalizeAgentRecord(agent = {}) {
@@ -242,7 +247,7 @@ async function enrichRawDataRows(rows = []) {
 export async function parseRawDataWorkbook(file) {
   if (!file) throw new Error("File is required");
 
-  const lookups = await buildAgentLookups();
+  const [lookups, lookupMaps] = await Promise.all([buildAgentLookups(), fetchLookupMaps()]);
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
 
@@ -280,33 +285,36 @@ export async function parseRawDataWorkbook(file) {
     const payins = parseNumber(rawRow[headerMap.payins], "Payins", errors);
     const sales = parseNumber(rawRow[headerMap.sales], "Sales", errors);
 
-    const agent_id_input = headerMap.agent_id !== undefined ? rawRow[headerMap.agent_id] : "";
     const leader_name_input = headerMap.leader_name !== undefined ? rawRow[headerMap.leader_name] : "";
-
-    const resolved_agent_id = resolveAgent(agent_id_input, leader_name_input, lookups, errors);
+    const { resolvedId: resolved_agent_id, suggestions } = resolveLeaderName(
+      leader_name_input,
+      lookups,
+      lookupMaps,
+      errors
+    );
 
     const date_real = dateReal ?? "";
-    const computed_id = `${date_real}_${resolved_agent_id}`;
+    const computedId = date_real && resolved_agent_id ? `${date_real}_${resolved_agent_id}` : "";
 
     return {
-      displayIndex: idx + 1,
-      sourceRowIndex: idx + 2, // +2 to account for header row and 1-indexing
+      sourceRowIndex: idx,
+      excelRowNumber: idx + 2, // +2 to account for header row and 1-indexing
       date_real,
       date_original: originalDate,
-      agent_id_input: agent_id_input?.toString().trim() ?? "",
       leader_name_input: leader_name_input?.toString().trim() ?? "",
       resolved_agent_id,
-      computed_id,
+      computedId,
       leads,
       payins,
       sales,
       status: errors.length ? "invalid" : "valid",
       errors,
+      suggestions,
     };
   });
 
   const computedIds = Array.from(
-    new Set(rows.filter(row => row.date_real && row.resolved_agent_id).map(row => row.computed_id))
+    new Set(rows.filter(row => row.computedId).map(row => row.computedId))
   );
 
   let existingIds = new Set();
@@ -317,9 +325,8 @@ export async function parseRawDataWorkbook(file) {
   }
 
   const rowsWithDuplicates = rows.map(row => {
-    const duplicate = existingIds.has(row.computed_id);
-    const warnings = duplicate ? ["Duplicate ID exists"] : [];
-    return { ...row, duplicate, warnings };
+    const duplicate = row.computedId ? existingIds.has(row.computedId) : false;
+    return { ...row, duplicate };
   });
 
   return {
@@ -338,7 +345,7 @@ export async function saveRawDataRows(validRows, mode = "warn", onProgress = () 
 
   for (let i = 0; i < validRows.length; i += batchSize) {
     const batch = validRows.slice(i, i + batchSize).map(row => {
-      const id = row.computed_id || `${row.date_real}_${row.resolved_agent_id}`;
+      const id = row.computedId || `${row.date_real}_${row.resolved_agent_id}`;
       return {
         id,
         agent_id: row.resolved_agent_id,
