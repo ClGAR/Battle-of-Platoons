@@ -152,6 +152,16 @@ input, select{
   background:#fff;
 }
 
+textarea.input{
+  width:100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7ff;
+  outline:none;
+  background:#fff;
+  resize: vertical;
+}
+
 input.input-error, select.input-error{
   border-color: #d64545;
   box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.15);
@@ -160,6 +170,19 @@ input.input-error, select.input-error{
 input:focus, select:focus{
   border-color: #a2a7ff;
   box-shadow: 0 0 0 3px rgba(162,167,255,.25);
+}
+
+textarea.input:focus{
+  border-color: #a2a7ff;
+  box-shadow: 0 0 0 3px rgba(162,167,255,.25);
+}
+
+.form-label{
+  display:block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .hint{
@@ -439,6 +462,69 @@ input:focus, select:focus{
   margin: 6px 0 14px;
 }
 
+.finalization-grid{
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.finalization-panel, .finalization-actions{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.week-status-card{
+  border: 1px solid #eef1ff;
+  background: #f9faff;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.week-status-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+}
+
+.week-range{
+  margin-top: 6px;
+  font-weight: 800;
+}
+
+.week-meta{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.meta-label{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.meta-value{
+  font-weight: 600;
+  display:flex;
+  flex-direction:column;
+  gap: 4px;
+}
+
+.action-card{
+  border: 1px solid #eef1ff;
+  background: #fdfdff;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.finalization-history{
+  margin-top: 18px;
+}
+
 /* Responsive */
 @media (max-width: 900px){
   .admin-shell{ grid-template-columns: 1fr; }
@@ -450,6 +536,7 @@ input:focus, select:focus{
   .t-head{ display:none; }
   .t-row{ grid-template-columns: 1fr; gap: 6px; }
   .t-right{ text-align:left; }
+  .finalization-grid{ grid-template-columns: 1fr; }
 }
 
 /* ----- Upload page ----- */
