@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { listAgents } from "../services/agents.service";
 import {
+  canEditRow,
   listRawData,
   unvoidRawDataWithAudit,
   updateRawDataWithAudit,
