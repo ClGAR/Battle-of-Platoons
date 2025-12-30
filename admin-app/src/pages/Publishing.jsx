@@ -35,6 +35,8 @@ const STATUS_CLASS = {
   missing_depot: "invalid",
 };
 
+const SCHEMA_MIGRATION_HINT = "Run SQL migration and reload schema.";
+
 export default function Publishing() {
   const defaults = useMemo(() => getDefaultDateRange(), []);
   const [filters, setFilters] = useState({
@@ -64,6 +66,15 @@ export default function Publishing() {
 
   const isSuperAdmin = profile?.role === "super_admin";
 
+  function normalizeSchemaErrorMessage(err, fallback) {
+    const msg = err?.message || fallback || "";
+    const lowered = msg.toLowerCase();
+    if (lowered.includes("schema cache") || lowered.includes("approve_reason")) {
+      return SCHEMA_MIGRATION_HINT;
+    }
+    return msg || fallback || "Unexpected error";
+  }
+
   useEffect(() => {
     let mounted = true;
     listAgents()
@@ -73,7 +84,7 @@ export default function Publishing() {
       })
       .catch(err => {
         if (!mounted) return;
-        setError(err.message || "Failed to load agents");
+        setError(normalizeSchemaErrorMessage(err, "Failed to load agents"));
       })
       .finally(() => {
         if (mounted) setAgentsLoading(false);
@@ -93,7 +104,7 @@ export default function Publishing() {
       })
       .catch(err => {
         if (!mounted) return;
-        setError(err.message || "Failed to load profile");
+        setError(normalizeSchemaErrorMessage(err, "Failed to load profile"));
       })
       .finally(() => {
         if (mounted) setProfileLoading(false);
@@ -115,7 +126,7 @@ export default function Publishing() {
       })
       .catch(err => {
         if (!mounted) return;
-        setError(err.message || "Failed to load comparison data");
+        setError(normalizeSchemaErrorMessage(err, "Failed to load comparison data"));
         setRows([]);
       })
       .finally(() => {
@@ -182,7 +193,7 @@ export default function Publishing() {
       setAppliedFilters(prev => ({ ...prev }));
     } catch (e) {
       console.error(e);
-      setActionError(e?.message || "Failed to update approval");
+      setActionError(normalizeSchemaErrorMessage(e, "Failed to update approval"));
     } finally {
       setActionLoading(false);
     }
@@ -394,7 +405,7 @@ export default function Publishing() {
               <textarea
                 className="input"
                 rows={3}
-                placeholder="Reason (required)"
+                placeholder="Approval reason (required)"
                 value={actionDialog.reason}
                 onChange={e => setActionDialog(prev => ({ ...prev, reason: e.target.value }))}
               />

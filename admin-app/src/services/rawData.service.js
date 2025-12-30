@@ -653,7 +653,7 @@ export async function approvePair({ date_real, agent_id, reason }) {
     approved: true,
     approved_by: user.id,
     approved_at: new Date().toISOString(),
-    approve_reason: trimmedReason,
+    approved_reason: trimmedReason,
   };
 
   const { data: updatedRows, error: updateError } = await supabase
@@ -689,7 +689,7 @@ export async function unapprovePair({ date_real, agent_id, reason }) {
     approved: false,
     approved_by: null,
     approved_at: null,
-    approve_reason: trimmedReason,
+    approved_reason: null,
   };
 
   const { data: updatedRows, error: updateError } = await supabase
