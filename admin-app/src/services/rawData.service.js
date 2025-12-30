@@ -15,6 +15,24 @@ const HEADER_ALIASES = {
 
 const REQUIRED_FIELDS = ["date", "leader_name", "leads", "payins", "sales"];
 
+const WEEK_FINALIZED_MESSAGE =
+  "This week has been finalized. Only Super Admins can modify or audit rows until it is reopened.";
+
+function mapWeekFinalizedMessage(message = "") {
+  if (message.toLowerCase().includes("week is finalized")) {
+    return WEEK_FINALIZED_MESSAGE;
+  }
+  return message;
+}
+
+function normalizeSupabaseError(error) {
+  if (!error) return new Error("Unknown database error");
+  const normalized = new Error(mapWeekFinalizedMessage(error.message || "Unknown database error"));
+  normalized.code = error.code;
+  normalized.cause = error;
+  return normalized;
+}
+
 function normalizeHeaderName(header = "") {
   return header
     .toString()
@@ -376,14 +394,14 @@ export async function saveRawDataRows(validRows, { mode = "warn", source = "comp
     if (isInsertOnly) {
       const { error } = await supabase.from("raw_data").insert(batch, { returning: "minimal" });
       if (error) {
-        errors.push(error.message || "Unknown database error");
+        errors.push(mapWeekFinalizedMessage(error.message || "Unknown database error"));
       } else {
         insertedCount += batch.length;
       }
     } else {
       const { data, error } = await supabase.from("raw_data").upsert(batch, { onConflict: "id" }).select();
       if (error) {
-        errors.push(error.message || "Unknown database error");
+        errors.push(mapWeekFinalizedMessage(error.message || "Unknown database error"));
       } else {
         upsertedCount += data?.length ?? 0;
       }
@@ -445,14 +463,14 @@ export async function updateRawData(id, { leads, payins, sales }) {
     .eq("id", id)
     .select("id,date_real,agent_id,leads,payins,sales,voided,void_reason,voided_at,voided_by")
     .single();
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 
   return enrichSingleRow(data);
 }
 
 export async function deleteRawData(id) {
   const { error } = await supabase.from("raw_data").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw normalizeSupabaseError(error);
 }
 
 async function requireSessionUser() {
@@ -473,7 +491,7 @@ export async function updateRawDataWithAudit(rowId, changes, reason, sessionUser
     .select("*")
     .eq("id", rowId)
     .single();
-  if (beforeError) throw beforeError;
+  if (beforeError) throw normalizeSupabaseError(beforeError);
 
   const updatePayload = {
     ...changes,
@@ -486,7 +504,7 @@ export async function updateRawDataWithAudit(rowId, changes, reason, sessionUser
     .eq("id", rowId)
     .select("*")
     .single();
-  if (updateError) throw updateError;
+  if (updateError) throw normalizeSupabaseError(updateError);
 
   const { error: auditError } = await supabase.from("raw_data_audit").insert({
     raw_data_id: rowId,
@@ -497,7 +515,7 @@ export async function updateRawDataWithAudit(rowId, changes, reason, sessionUser
     before,
     after: updatedRow,
   });
-  if (auditError) throw auditError;
+  if (auditError) throw normalizeSupabaseError(auditError);
 
   return enrichSingleRow(updatedRow);
 }
@@ -521,7 +539,7 @@ async function logAuditEntriesForPair(beforeRows, afterRows, action, reason, act
 
   if (!entries.length) return;
   const { error: auditError } = await supabase.from("raw_data_audit").insert(entries);
-  if (auditError) throw auditError;
+  if (auditError) throw normalizeSupabaseError(auditError);
 }
 
 export async function voidRawDataWithAudit(rowId, reason, sessionUser) {
@@ -535,7 +553,7 @@ export async function voidRawDataWithAudit(rowId, reason, sessionUser) {
     .select("*")
     .eq("id", rowId)
     .single();
-  if (beforeError) throw beforeError;
+  if (beforeError) throw normalizeSupabaseError(beforeError);
 
   const voidPayload = {
     voided: true,
@@ -551,7 +569,7 @@ export async function voidRawDataWithAudit(rowId, reason, sessionUser) {
     .eq("id", rowId)
     .select("*")
     .single();
-  if (updateError) throw updateError;
+  if (updateError) throw normalizeSupabaseError(updateError);
 
   const { error: auditError } = await supabase.from("raw_data_audit").insert({
     raw_data_id: rowId,
@@ -562,7 +580,7 @@ export async function voidRawDataWithAudit(rowId, reason, sessionUser) {
     before,
     after: updatedRow,
   });
-  if (auditError) throw auditError;
+  if (auditError) throw normalizeSupabaseError(auditError);
 
   return enrichSingleRow(updatedRow);
 }
@@ -578,7 +596,7 @@ export async function unvoidRawDataWithAudit(rowId, reason, sessionUser) {
     .select("*")
     .eq("id", rowId)
     .single();
-  if (beforeError) throw beforeError;
+  if (beforeError) throw normalizeSupabaseError(beforeError);
 
   const unvoidPayload = {
     voided: false,
@@ -594,7 +612,7 @@ export async function unvoidRawDataWithAudit(rowId, reason, sessionUser) {
     .eq("id", rowId)
     .select("*")
     .single();
-  if (updateError) throw updateError;
+  if (updateError) throw normalizeSupabaseError(updateError);
 
   const { error: auditError } = await supabase.from("raw_data_audit").insert({
     raw_data_id: rowId,
@@ -605,7 +623,7 @@ export async function unvoidRawDataWithAudit(rowId, reason, sessionUser) {
     before,
     after: updatedRow,
   });
-  if (auditError) throw auditError;
+  if (auditError) throw normalizeSupabaseError(auditError);
 
   return enrichSingleRow(updatedRow);
 }
@@ -628,14 +646,14 @@ export async function approvePair({ date_real, agent_id, reason }) {
     .eq("date_real", date_real)
     .eq("agent_id", agent_id)
     .in("source", ["company", "depot"]);
-  if (beforeError) throw beforeError;
+  if (beforeError) throw normalizeSupabaseError(beforeError);
   if (!beforeRows?.length) throw new Error("No rows found for this leader and date");
 
   const updatePayload = {
     approved: true,
     approved_by: user.id,
     approved_at: new Date().toISOString(),
-    approve_reason: trimmedReason,
+    approved_reason: trimmedReason,
   };
 
   const { data: updatedRows, error: updateError } = await supabase
@@ -645,7 +663,7 @@ export async function approvePair({ date_real, agent_id, reason }) {
     .eq("agent_id", agent_id)
     .in("source", ["company", "depot"])
     .select("*");
-  if (updateError) throw updateError;
+  if (updateError) throw normalizeSupabaseError(updateError);
   if (!updatedRows?.length) throw new Error("Approval update did not modify any rows");
 
   await logAuditEntriesForPair(beforeRows, updatedRows, "approve", trimmedReason, user);
@@ -664,14 +682,14 @@ export async function unapprovePair({ date_real, agent_id, reason }) {
     .eq("date_real", date_real)
     .eq("agent_id", agent_id)
     .in("source", ["company", "depot"]);
-  if (beforeError) throw beforeError;
+  if (beforeError) throw normalizeSupabaseError(beforeError);
   if (!beforeRows?.length) throw new Error("No rows found for this leader and date");
 
   const updatePayload = {
     approved: false,
     approved_by: null,
     approved_at: null,
-    approve_reason: trimmedReason,
+    approved_reason: null,
   };
 
   const { data: updatedRows, error: updateError } = await supabase
@@ -681,7 +699,7 @@ export async function unapprovePair({ date_real, agent_id, reason }) {
     .eq("agent_id", agent_id)
     .in("source", ["company", "depot"])
     .select("*");
-  if (updateError) throw updateError;
+  if (updateError) throw normalizeSupabaseError(updateError);
   if (!updatedRows?.length) throw new Error("Unapprove update did not modify any rows");
 
   await logAuditEntriesForPair(beforeRows, updatedRows, "unapprove", trimmedReason, user);
