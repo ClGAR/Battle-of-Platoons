@@ -13,6 +13,7 @@ import Formulas from "./pages/Formulas";
 import Upload from "./pages/Upload";
 import Compare from "./pages/Compare";
 import Publishing from "./pages/Publishing";
+import Finalization from "./pages/Finalization";
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="upload" element={<Upload />} />
             <Route path="compare" element={<Compare />} />
             <Route path="publishing" element={<Publishing />} />
+            <Route path="finalization" element={<Finalization />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
