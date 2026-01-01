@@ -14,7 +14,7 @@ import { supabase } from "./supabase";
  * Notes:
  * - We intentionally DO NOT rely on PostgREST nested joins for depots/companies/platoons
  *   because those return null unless FK relationships are properly defined in Postgres.
- * - Instead: fetch lookups separately and attach by depotId/companyId/platoonId.
+ * - Instead: fetch lookups separately and attach by depot_id/company_id/platoon_id.
  */
 
 export async function getLeaderboard({
@@ -43,14 +43,13 @@ export async function getLeaderboard({
         date_real,
         date,
         agent_id,
-        agentId,
         agents:agents (
           id,
           name,
           photoURL,
-          depotId,
-          companyId,
-          platoonId,
+          depot_id,
+          company_id,
+          platoon_id,
           role
         )
       `
@@ -82,7 +81,20 @@ export async function getLeaderboard({
     depotPairs.set(`${row.date_real}_${row.agent_id}`, row);
   });
 
+  const isDev = Boolean(import.meta.env?.DEV);
+  let warnedMissingAgentId = false;
+  let warnedMissingAgentData = false;
+
   const publishableRows = (companyRows ?? []).filter((r) => {
+    if (isDev) {
+      if (!r?.agent_id && !warnedMissingAgentId) {
+        console.warn("[Leaderboard] Missing agent_id in raw_data row", r?.id ?? r);
+        warnedMissingAgentId = true;
+      } else if (r?.agent_id && !r?.agents && !warnedMissingAgentData) {
+        console.warn("[Leaderboard] Missing agents join data for agent_id", r.agent_id);
+        warnedMissingAgentData = true;
+      }
+    }
     const pair = depotPairs.get(`${r.date_real}_${r.agent_id}`);
     return isPublishable(r, pair);
   });
@@ -150,12 +162,12 @@ function aggregateLeaderboard({
     const payins = toNumber(r.payins);
     const sales = toNumber(r.sales);
 
-    const agentId = String(r.agent_id ?? r.agentId ?? a.id ?? "");
+    const agentId = String(r.agent_id ?? a.id ?? "");
 
     // Resolve lookup entities
-    const depot = a.depotId ? depotsMap.get(String(a.depotId)) : null;
-    const company = a.companyId ? companiesMap.get(String(a.companyId)) : null;
-    const platoon = a.platoonId ? platoonsMap.get(String(a.platoonId)) : null;
+    const depot = a.depot_id ? depotsMap.get(String(a.depot_id)) : null;
+    const company = a.company_id ? companiesMap.get(String(a.company_id)) : null;
+    const platoon = a.platoon_id ? platoonsMap.get(String(a.platoon_id)) : null;
 
     // Determine grouping key + display name + avatar
     let key = "";
@@ -169,11 +181,11 @@ function aggregateLeaderboard({
       avatarUrl = a.photoURL ?? "";
       platoonName = platoon?.name ?? ""; // show platoon label in UI for leaders
     } else if (mode === "depots") {
-      key = String(a.depotId ?? "");
+      key = String(a.depot_id ?? "");
       name = (depot?.name ?? key) || "(No Depot)";
       avatarUrl = depot?.photoURL ?? "";
     } else if (mode === "companies") {
-      key = String(a.companyId ?? "");
+      key = String(a.company_id ?? "");
       name = (company?.name ?? key) || "(No Commander)";
       avatarUrl = company?.photoURL ?? "";
     } else {
@@ -184,7 +196,7 @@ function aggregateLeaderboard({
       platoonName = platoon?.name ?? "";
     }
 
-    // Skip rows that can't be grouped (e.g., missing depotId when mode=depots)
+    // Skip rows that can't be grouped (e.g., missing depot_id when mode=depots)
     if (!key) continue;
 
     if (!map.has(key)) {
