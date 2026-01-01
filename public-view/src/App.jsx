@@ -122,6 +122,15 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+  let projectRef = "missing";
+  if (supabaseUrl) {
+    try {
+      projectRef = new URL(supabaseUrl).hostname.split(".")[0] || "unknown";
+    } catch (e) {
+      projectRef = "invalid-url";
+    }
+  }
 
   useEffect(() => {
     let isCancelled = false;
@@ -173,6 +182,28 @@ function App() {
 
   return (
     <div className="page">
+      {import.meta.env.DEV && (
+        <div
+          style={{
+            position: "fixed",
+            top: 8,
+            right: 8,
+            padding: "6px 10px",
+            background: "#111827",
+            color: "#e5e7eb",
+            borderRadius: 999,
+            fontSize: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+            display: "flex",
+            gap: 12,
+            zIndex: 9999,
+          }}
+        >
+          <span>Supabase: {projectRef}</span>
+          <span>Rows: {rows.length}</span>
+          <span>Error: {error || "none"}</span>
+        </div>
+      )}
       <div className="page-inner">
         {/* Top header */}
         <header className="top-header">
