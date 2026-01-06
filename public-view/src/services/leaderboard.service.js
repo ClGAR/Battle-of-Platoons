@@ -135,7 +135,7 @@ export async function getLeaderboard({
   const { data: activeFormula, error: formulaError } = await formulaPromise;
   if (formulaError) throw formulaError;
 
-  const scoringConfig = activeFormula?.config ?? activeFormula?.metrics ?? null;
+  const scoringConfig = activeFormula?.config ?? null;
   const scoringFn = (row) => computeTotalScore(resolvedBattleType, row, scoringConfig);
 
   // 4) Aggregate

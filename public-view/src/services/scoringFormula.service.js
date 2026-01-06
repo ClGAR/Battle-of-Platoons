@@ -10,5 +10,7 @@ export async function getActiveFormula(battle_type, week_key) {
     week_key,
   });
 
-  return { data, error };
+  const row = Array.isArray(data) ? data[0] : data && data.length === 0 ? null : data;
+
+  return { data: row ?? null, error };
 }

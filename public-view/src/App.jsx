@@ -153,13 +153,29 @@ function normalizePodiumItems(topItems = []) {
 }
 
 function normalizeFormulaMetrics(formula) {
-  const metricsSource = formula?.config?.metrics ?? formula?.metrics ?? [];
+  const metricsSource = formula?.config?.metrics ?? [];
   if (!Array.isArray(metricsSource)) return [];
   return metricsSource.map((m) => ({
     key: (m?.key ?? m?.metric ?? m?.name ?? "").toString(),
     divisor: Number(m?.divisor ?? m?.division ?? 0),
     maxPoints: Number(m?.maxPoints ?? m?.max_points ?? m?.points ?? 0),
   }));
+}
+
+function toWeekKeyNumber(weekKey) {
+  if (!weekKey || typeof weekKey !== "string") return null;
+  const match = weekKey.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 100 + Number(match[2]);
+}
+
+function isWeekKeyInRange(weekKey, startKey, endKey) {
+  const value = toWeekKeyNumber(weekKey);
+  const start = toWeekKeyNumber(startKey);
+  const end = toWeekKeyNumber(endKey);
+  if (!value || !start) return true;
+  if (!end) return value >= start;
+  return value >= start && value <= end;
 }
 
 function getBattleTypeForView(viewKey, roleFilter) {
@@ -287,10 +303,10 @@ function App() {
   const companyRowsFetched = debug.companyRowsFetched ?? 0;
   const depotRowsFetched = debug.depotRowsFetched ?? 0;
   const activeFormula = data?.formula?.data || null;
+  const selectedWeekKey = data?.formula?.weekKey || null;
   const formulaMetrics = normalizeFormulaMetrics(activeFormula);
-  const formulaVersion = activeFormula
-    ? activeFormula.version ?? activeFormula.revision ?? activeFormula.config?.version ?? "â€”"
-    : null;
+  const formulaVersion = activeFormula?.version ?? activeFormula?.revision ?? "—";
+  const formulaTitle = `${activeFormula?.label ?? "Not published"} (v${formulaVersion})`;
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
   const entitiesLabel =
@@ -312,6 +328,13 @@ function App() {
       : "Commander Rankings";
 
   const statusBlocks = [];
+
+  useEffect(() => {
+    if (!activeFormula || !selectedWeekKey) return;
+    if (!isWeekKeyInRange(selectedWeekKey, activeFormula.effective_start_week_key, activeFormula.effective_end_week_key)) {
+      console.warn("Active formula week mismatch", { selectedWeekKey, activeFormula });
+    }
+  }, [activeFormula, selectedWeekKey]);
 
   if (!supabaseConfigured) {
     statusBlocks.push(
@@ -478,10 +501,7 @@ function App() {
         <h2 className="section-title">{title}</h2>
         <div className="formula-summary">
           <div className="formula-title">
-            Formula:{" "}
-            {activeFormula
-              ? `${activeFormula.label || "Published Formula"} (v${formulaVersion})`
-              : "Not published"}
+            Formula: {formulaTitle}
           </div>
           <div className="formula-details">
             {activeFormula ? (
@@ -495,7 +515,7 @@ function App() {
                 <span className="formula-warning">Formula metrics are not configured.</span>
               )
             ) : (
-              <span className="formula-warning">No published formula for this week</span>
+              <span className="formula-warning">No published formula for this week.</span>
             )}
           </div>
         </div>
@@ -649,3 +669,9 @@ function LeaderboardTable({ rows, view, roleFilter }) {
 }
 
 export default App;
+
+
+
+
+
+
