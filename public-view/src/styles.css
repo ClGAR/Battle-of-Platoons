@@ -101,49 +101,72 @@ body {
 
 .topbar-segment {
   flex: 1;
-  padding: 16px 18px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 78px;
+  min-height: 84px;
 }
 
 .topbar-segment--weeks {
+  flex: 2.2;
+  min-width: 420px;
   align-items: flex-start;
   text-align: left;
   gap: 8px;
 }
 
 .topbar-segment--metric {
+  flex: 0.9;
+  min-width: 150px;
   align-items: center;
   text-align: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.week-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
 }
 
 .topbar-divider {
   width: 1px;
-  background: var(--divider);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .week-label {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  opacity: 0.92;
+  opacity: 0.9;
   color: var(--white);
+  white-space: nowrap;
 }
 
 .week-range {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
+  opacity: 0.95;
   color: var(--white);
+  white-space: nowrap;
 }
 
 .week-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 10px;
+  width: 100%;
+  overflow: hidden;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.week-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .week-tab {
@@ -152,39 +175,66 @@ body {
   color: rgba(255, 255, 255, 0.92);
   font-size: 12px;
   font-weight: 700;
-  padding: 6px 10px;
-  border-radius: 999px;
+  padding: 6px 0;
+  border-radius: 0;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
-  opacity: 0.95;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.92;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.55);
+  text-underline-offset: 4px;
 }
 
 .week-tab:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
 }
 
 .week-tab--active {
   background: #ffffff;
   color: var(--navy);
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-decoration: none;
   opacity: 1;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+}
+
+.week-tab--active:hover {
+  background: #ffffff;
+  color: var(--navy);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.22);
+}
+
+.week-tab--active:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 3px;
+}
+
+.week-tab:not(.week-tab--active):hover {
+  opacity: 1;
+  text-decoration-color: rgba(255, 255, 255, 0.85);
+  background: transparent;
 }
 
 .week-tab:disabled {
-  opacity: 0.4;
-  cursor: default;
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .metric-label {
   font-size: 12px;
-  font-weight: 700;
-  opacity: 0.88;
-  letter-spacing: 0.2px;
+  font-weight: 600;
+  opacity: 0.78;
+  letter-spacing: 0.3px;
 }
 
 .metric-value {
-  font-size: 26px;
+  font-size: clamp(28px, 3.2vw, 40px);
   font-weight: 900;
-  line-height: 1.05;
+  line-height: 1;
   letter-spacing: 0.2px;
 }
 
@@ -490,15 +540,22 @@ body {
 
   .topbar-segment--weeks {
     flex: 0 0 100%;
+    min-width: 0;
   }
 
   .topbar-segment--metric {
     flex: 1 1 33.333%;
     min-height: 70px;
+    min-width: 0;
   }
 
   .topbar-divider {
     display: none;
+  }
+
+  .week-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
   }
 }
 
@@ -523,6 +580,11 @@ body {
     width: 100%;
     align-items: flex-start;
     text-align: left;
+  }
+
+  .week-row {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .metric-value {

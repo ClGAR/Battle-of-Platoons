@@ -358,8 +358,10 @@ function App() {
         <section className="week-metrics">
           <div className="topbar">
             <div className="topbar-segment topbar-segment--weeks">
-              <div className="week-label">View Previous Updates :</div>
-              <div className="week-range">{weekRangeLabel}</div>
+              <div className="week-row">
+                <div className="week-label">View Previous Updates :</div>
+                <div className="week-range">{weekRangeLabel}</div>
+              </div>
 
               <div className="week-tabs">
                 {weekTabs.map((w) => (
