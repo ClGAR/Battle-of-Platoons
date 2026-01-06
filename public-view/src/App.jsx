@@ -40,6 +40,17 @@ function toYMD(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function toIsoWeekKey(date) {
+  const ref = new Date(date);
+  if (Number.isNaN(ref.getTime())) return null;
+  const utcDate = new Date(Date.UTC(ref.getFullYear(), ref.getMonth(), ref.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((utcDate - yearStart) / 86400000 + 1) / 7);
+  return `${utcDate.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
 function buildWeekTabsForCurrentMonth(baseDate = new Date()) {
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth(); // 0 = Jan
@@ -141,6 +152,26 @@ function normalizePodiumItems(topItems = []) {
   return [];
 }
 
+function normalizeFormulaMetrics(formula) {
+  const metricsSource = formula?.config?.metrics ?? formula?.metrics ?? [];
+  if (!Array.isArray(metricsSource)) return [];
+  return metricsSource.map((m) => ({
+    key: (m?.key ?? m?.metric ?? m?.name ?? "").toString(),
+    divisor: Number(m?.divisor ?? m?.division ?? 0),
+    maxPoints: Number(m?.maxPoints ?? m?.max_points ?? m?.points ?? 0),
+  }));
+}
+
+function getBattleTypeForView(viewKey, roleFilter) {
+  if (viewKey === "depots") return "depots";
+  if (viewKey === "companies") return "companies";
+  if (viewKey === "platoon") return "platoons";
+  if (viewKey === "leaders" && roleFilter === "platoon") return "platoons";
+  if (viewKey === "leaders" && roleFilter === "squad") return "squads";
+  if (viewKey === "leaders" && roleFilter === "team") return "teams";
+  return viewKey || "leaders";
+}
+
 function App() {
   const initialWeeks = buildWeekTabsForCurrentMonth();
   const [weekTabs] = useState(initialWeeks.tabs);
@@ -176,6 +207,11 @@ function App() {
         const week = weekTabs.find((w) => w.key === activeWeek);
         const range = week?.range;
         const leadersPlatoonView = activeView === "leaders" && leaderRoleFilter === "platoon";
+        const battleTypeKey = getBattleTypeForView(
+          leadersPlatoonView ? "platoon" : activeView,
+          leaderRoleFilter
+        );
+        const weekKey = range?.end ? toIsoWeekKey(range.end) : null;
 
         const result = await getLeaderboard({
           startDate: toYMD(range.start),
@@ -185,6 +221,8 @@ function App() {
             activeView === "leaders" && !leadersPlatoonView && leaderRoleFilter !== "all"
               ? leaderRoleFilter
               : null,
+          battleType: battleTypeKey,
+          weekKey,
         });
 
         if (!isCancelled) setData(result);
@@ -248,6 +286,11 @@ function App() {
   const filteredByRangeCount = debug.filteredByRangeCount ?? 0;
   const companyRowsFetched = debug.companyRowsFetched ?? 0;
   const depotRowsFetched = debug.depotRowsFetched ?? 0;
+  const activeFormula = data?.formula?.data || null;
+  const formulaMetrics = normalizeFormulaMetrics(activeFormula);
+  const formulaVersion = activeFormula
+    ? activeFormula.version ?? activeFormula.revision ?? activeFormula.config?.version ?? "—"
+    : null;
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
   const entitiesLabel =
@@ -429,11 +472,34 @@ function App() {
                 >
                   {role.label}
                 </button>
-              ))}
-            </div>
-          )}
-          <h2 className="section-title">{title}</h2>
-        </section>
+            ))}
+          </div>
+        )}
+        <h2 className="section-title">{title}</h2>
+        <div className="formula-summary">
+          <div className="formula-title">
+            Formula:{" "}
+            {activeFormula
+              ? `${activeFormula.label || "Published Formula"} (v${formulaVersion})`
+              : "Not published"}
+          </div>
+          <div className="formula-details">
+            {activeFormula ? (
+              formulaMetrics.length ? (
+                formulaMetrics.map((m) => (
+                  <span key={m.key || m.divisor} className="formula-pill">
+                    {m.key || "Metric"}: ÷{m.divisor} • Max {m.maxPoints}
+                  </span>
+                ))
+              ) : (
+                <span className="formula-warning">Formula metrics are not configured.</span>
+              )
+            ) : (
+              <span className="formula-warning">No published formula for this week</span>
+            )}
+          </div>
+        </div>
+      </section>
 
         {/* Loading / error */}
         {loading && (

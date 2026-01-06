@@ -1,5 +1,7 @@
 // public-view/src/services/leaderboard.service.js
 import { supabase, supabaseConfigured } from "./supabase";
+import { getActiveFormula } from "./scoringFormula.service";
+import { computeTotalScore } from "./scoringEngine";
 
 /**
  * Battle of Platoons - Leaderboard Service (Supabase)
@@ -23,12 +25,16 @@ export async function getLeaderboard({
   endDate, // "YYYY-MM-DD"
   groupBy = "leaders", // "leaders" | "depots" | "companies" | "platoon"
   roleFilter = null, // null | "platoon" | "squad" | "team"
-  scoring = defaultScore,
+  battleType = null, // override battle type passed to scoring formula RPC
+  weekKey = null,
 }) {
   if (!supabaseConfigured || !supabase) {
     throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
   }
 
+  const resolvedBattleType = normalizeBattleType(battleType ?? groupBy);
+  const resolvedWeekKey = weekKey || toIsoWeekKey(endDate);
+  const formulaPromise = getActiveFormula(resolvedBattleType, resolvedWeekKey);
   const agentsPromise = supabase
     .from("agents")
     .select("id,name,upline_agent_id,depot_id,company_id,platoon_id,role,photo_url,photoURL");
@@ -126,11 +132,17 @@ export async function getLeaderboard({
   const companiesMap = new Map((companies ?? []).map((c) => [String(c.id), c]));
   const platoonsMap = new Map((platoons ?? []).map((p) => [String(p.id), p]));
 
+  const { data: activeFormula, error: formulaError } = await formulaPromise;
+  if (formulaError) throw formulaError;
+
+  const scoringConfig = activeFormula?.config ?? activeFormula?.metrics ?? null;
+  const scoringFn = (row) => computeTotalScore(resolvedBattleType, row, scoringConfig);
+
   // 4) Aggregate
   const rows = aggregateLeaderboard({
     rows: filtered,
     mode: groupBy,
-    scoringFn: scoring,
+    scoringFn,
     depotsMap,
     companiesMap,
     platoonsMap,
@@ -148,6 +160,12 @@ export async function getLeaderboard({
   return {
     metrics,
     rows,
+    formula: {
+      data: activeFormula ?? null,
+      battleType: resolvedBattleType,
+      weekKey: resolvedWeekKey,
+      missing: !activeFormula,
+    },
     debug: {
       companyRowsFetched,
       depotRowsFetched,
@@ -157,6 +175,9 @@ export async function getLeaderboard({
       endDate,
       groupBy,
       roleFilter,
+      battleType: resolvedBattleType,
+      weekKey: resolvedWeekKey,
+      formulaMissing: !activeFormula,
     },
   };
 }
@@ -366,14 +387,6 @@ function normalizeAgent(a) {
   };
 }
 
-function defaultScore(row) {
-  // Simple baseline scoring:
-  // - 1 pt per lead
-  // - 2 pts per payin
-  // - sales / 1000 (30,000 sales => 30 pts)
-  return toNumber(row.leads) * 1 + toNumber(row.payins) * 2 + toNumber(row.sales) / 1000;
-}
-
 function toNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -411,4 +424,28 @@ function parseFirestoreTimestampJson(ts) {
   }
 
   return null;
+}
+
+function normalizeBattleType(input) {
+  const key = String(input || "").toLowerCase();
+  if (key === "depots") return "depots";
+  if (key === "companies") return "companies";
+  if (key === "platoon" || key === "platoons") return "platoons";
+  if (key === "leaders") return "leaders";
+  return key || "leaders";
+}
+
+function toIsoWeekKey(dateStr) {
+  if (!dateStr) return null;
+  const ref = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(ref.getTime())) return null;
+
+  const utcDate = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+  const day = utcDate.getUTCDay() || 7; // Monday=1, Sunday=7
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((utcDate - yearStart) / 86400000 + 1) / 7);
+
+  return `${utcDate.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
 }
