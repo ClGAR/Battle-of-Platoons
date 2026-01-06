@@ -5,6 +5,7 @@ import {
   listAudit,
   updateDraft,
   publishDraft,
+  createDraft,
 } from "../services/scoringFormula.service";
 import { getMyProfile } from "../services/profile.service";
 import { computeMetricScore, computeTotalScore } from "../services/scoringEngine";
@@ -32,6 +33,16 @@ export default function ScoringFormulas() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
   const [publishError, setPublishError] = useState("");
+  const [createModal, setCreateModal] = useState({
+    open: false,
+    battleType: "depots",
+    label: "",
+    start: "",
+    end: "",
+    reason: "",
+    loading: false,
+    error: "",
+  });
 
   const [previewInputs, setPreviewInputs] = useState({
     leads: "0",
@@ -109,11 +120,64 @@ export default function ScoringFormulas() {
     String(selectedFormula?.battle_type || "").toLowerCase() === "depot" ||
     String(selectedFormula?.battle_type || "").toLowerCase() === "depots";
 
+  function Stepper({ id, value, onChange, step = 50, min = 0, disabled = false }) {
+    return (
+      <div className="row" style={{ gap: "8px", alignItems: "center" }}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={disabled || value <= min}
+          onClick={() => onChange(Math.max(min, (Number(value) || 0) - step))}
+        >
+          −
+        </button>
+        <input
+          id={id}
+          type="number"
+          min={min}
+          step={step}
+          value={value}
+          onChange={e => onChange(Math.max(min, Number(e.target.value) || 0))}
+          style={{ flex: 1 }}
+          disabled={disabled}
+        />
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={disabled}
+          onClick={() => onChange((Number(value) || 0) + step)}
+        >
+          +
+        </button>
+      </div>
+    );
+  }
+
+  function clampNonNegative(value) {
+    const num = Number(value);
+    if (Number.isNaN(num)) return 0;
+    return Math.max(0, num);
+  }
+
   function getAllowedMetricKeys(battleType) {
     if (battleType === "depots") {
       return ["leads", "sales"];
     }
     return ["leads", "payins", "sales"];
+  }
+
+  function getDefaultMetrics(battleType) {
+    if (battleType === "depots") {
+      return [
+        { key: "leads", divisor: 500, maxPoints: 400 },
+        { key: "sales", divisor: 3_000_000, maxPoints: 600 },
+      ];
+    }
+    return [
+      { key: "leads", divisor: 500, maxPoints: 400 },
+      { key: "payins", divisor: 200, maxPoints: 200 },
+      { key: "sales", divisor: 3_000_000, maxPoints: 400 },
+    ];
   }
 
   function normalizeMetrics(formula) {
@@ -138,7 +202,7 @@ export default function ScoringFormulas() {
   useEffect(() => {
     if (!selectedFormula) return;
 
-    setDraftLabel(selectedFormula.name || selectedFormula.title || "");
+    setDraftLabel(selectedFormula.label || selectedFormula.name || selectedFormula.title || "");
     setDraftStartWeekKey(
       selectedFormula.effective_start_week_key ||
         selectedFormula.start_week_key ||
@@ -217,8 +281,10 @@ export default function ScoringFormulas() {
     setSaveLoading(true);
     const { data, error } = await updateDraft({
       formula_id: selectedId,
-      name: draftLabel,
-      metrics: payloadMetrics,
+      label: draftLabel,
+      effective_start_week_key: draftStartWeekKey,
+      effective_end_week_key: draftEndWeekKey || null,
+      config: payloadMetrics,
       reason: trimmedReason,
     });
     setSaveLoading(false);
@@ -274,9 +340,9 @@ export default function ScoringFormulas() {
   }
 
   function getTotals() {
-    const leads = Number(previewInputs.leads) || 0;
-    const payins = isDepotBattle ? 0 : Number(previewInputs.payins) || 0;
-    const sales = Number(previewInputs.sales) || 0;
+    const leads = clampNonNegative(previewInputs.leads);
+    const payins = isDepotBattle ? 0 : clampNonNegative(previewInputs.payins);
+    const sales = clampNonNegative(previewInputs.sales);
     return { leads, payins, sales };
   }
 
@@ -308,7 +374,7 @@ export default function ScoringFormulas() {
     }
 
     const fields = [
-      { label: "Name", value: selectedFormula.name || selectedFormula.title || "(Untitled)" },
+      { label: "Label", value: selectedFormula.label || "(Untitled)" },
       { label: "Status", value: selectedFormula.status || "unknown" },
       { label: "Version", value: selectedFormula.version ?? selectedFormula.revision ?? "—" },
     ];
@@ -319,6 +385,9 @@ export default function ScoringFormulas() {
       0
     );
     const totalPointsValid = totalPoints === 1000;
+    const divisorsValid =
+      displayMetrics.filter(m => Number(m.divisor) > 0 || !isEditable).length ===
+      displayMetrics.length;
 
     return (
       <div className="stack">
@@ -341,7 +410,7 @@ export default function ScoringFormulas() {
           <div className="stack sm">
             <div className="stack xs">
               <label className="label" htmlFor="formula-name">
-                Name
+                Label
               </label>
               <input
                 id="formula-name"
@@ -357,7 +426,7 @@ export default function ScoringFormulas() {
                   type="text"
                   value={draftStartWeekKey}
                   onChange={e => setDraftStartWeekKey(e.target.value)}
-                  disabled
+                  disabled={!isEditable}
                 />
               </div>
               <div className="stack xs">
@@ -366,7 +435,7 @@ export default function ScoringFormulas() {
                   type="text"
                   value={draftEndWeekKey}
                   onChange={e => setDraftEndWeekKey(e.target.value)}
-                  disabled
+                  disabled={!isEditable}
                 />
               </div>
             </div>
@@ -395,36 +464,26 @@ export default function ScoringFormulas() {
                           <label className="label" htmlFor={`divisor-${metric.key}`}>
                             Divisor
                           </label>
-                          <input
+                          <Stepper
                             id={`divisor-${metric.key}`}
-                            type="number"
                             value={metric.divisor}
-                            onChange={e =>
-                              handleMetricChange(metric.key, "divisor", e.target.value)
-                            }
+                            step={metric.key === "sales" ? 10000 : 10}
+                            min={0}
+                            disabled={!isEditable}
+                            onChange={val => handleMetricChange(metric.key, "divisor", val)}
                           />
                         </div>
                         <div className="stack xs">
                           <label className="label" htmlFor={`max-${metric.key}`}>
                             Max Points
                           </label>
-                          <input
+                          <Stepper
                             id={`max-${metric.key}`}
-                            type="number"
                             value={metric.maxPoints}
-                            onChange={e =>
-                              handleMetricChange(metric.key, "maxPoints", e.target.value)
-                            }
-                          />
-                          <input
-                            type="range"
-                            min={0}
-                            max={1000}
                             step={50}
-                            value={Number(metric.maxPoints) || 0}
-                            onChange={e =>
-                              handleMetricChange(metric.key, "maxPoints", Number(e.target.value))
-                            }
+                            min={0}
+                            disabled={!isEditable}
+                            onChange={val => handleMetricChange(metric.key, "maxPoints", val)}
                           />
                         </div>
                       </div>
@@ -443,6 +502,9 @@ export default function ScoringFormulas() {
               {!totalPointsValid && (
                 <div className="muted">Total points must equal 1000 to save or publish.</div>
               )}
+              {!divisorsValid && (
+                <div className="muted">Divisors must be greater than 0.</div>
+              )}
             </div>
             <div className="stack xs">
               <label className="label" htmlFor="reason">
@@ -453,6 +515,7 @@ export default function ScoringFormulas() {
                 rows={3}
                 value={reasonText}
                 onChange={e => setReasonText(e.target.value)}
+                disabled={!isEditable}
               />
             </div>
             {saveError && <div className="error">{saveError}</div>}
@@ -461,14 +524,22 @@ export default function ScoringFormulas() {
               <button
                 className="btn primary"
                 onClick={handleSaveDraft}
-                disabled={saveLoading || !totalPointsValid}
+                disabled={
+                  saveLoading || !totalPointsValid || !reasonText.trim() || !divisorsValid
+                }
               >
                 {saveLoading ? "Saving…" : "Save Draft"}
               </button>
               <button
                 className="btn"
                 onClick={handlePublish}
-                disabled={publishLoading || isPublished || !totalPointsValid}
+                disabled={
+                  publishLoading ||
+                  isPublished ||
+                  !totalPointsValid ||
+                  !reasonText.trim() ||
+                  !divisorsValid
+                }
               >
                 {publishLoading ? "Publishing…" : "Publish"}
               </button>
@@ -525,8 +596,12 @@ export default function ScoringFormulas() {
                     id={`preview-${key}`}
                     type="number"
                     value={previewInputs[key]}
+                    min={0}
                     onChange={e =>
-                      setPreviewInputs(prev => ({ ...prev, [key]: e.target.value }))
+                      setPreviewInputs(prev => ({
+                        ...prev,
+                        [key]: String(clampNonNegative(e.target.value)),
+                      }))
                     }
                   />
                 </div>
@@ -576,20 +651,46 @@ export default function ScoringFormulas() {
             <div className="muted">No audit entries yet.</div>
           )}
           {!auditLoading && !auditError && auditEntries.length > 0 && (
-            <div className="stack xs">
+            <div className="stack sm" style={{ position: "relative", paddingLeft: 16 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  left: 6,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  background: "#e2e8f0",
+                }}
+              />
               {auditEntries.map(entry => {
-                const actor = entry.actor || entry.actor_name || entry.user_id || "Unknown";
+                const actor =
+                  entry.actor_name ||
+                  entry.actor ||
+                  entry.actor_uuid ||
+                  entry.user_id ||
+                  "Unknown";
                 const action = entry.action || entry.event || "change";
                 const reason = entry.reason || entry.notes || "";
                 const timestamp = entry.created_at || entry.timestamp || entry.at || "";
                 return (
-                  <div key={`${action}-${timestamp}-${actor}`} className="card muted" style={{ padding: "8px" }}>
+                  <div key={`${action}-${timestamp}-${actor}`} className="stack xs" style={{ position: "relative", paddingLeft: 12 }}>
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: -2,
+                        top: 4,
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: "#0f172a",
+                      }}
+                    />
                     <div className="row between">
                       <div className="label">{action}</div>
-                      <div className="value">{timestamp}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{timestamp}</div>
                     </div>
-                    <div className="muted">By: {actor}</div>
-                    {reason && <div className="value">Reason: {reason}</div>}
+                    <div className="muted" style={{ fontSize: 12 }}>By: {actor}</div>
+                    {reason && <div className="value" style={{ fontSize: 14 }}>{reason}</div>}
                   </div>
                 );
               })}
@@ -600,32 +701,208 @@ export default function ScoringFormulas() {
     );
   }
 
-  return (
-    <div className="grid two" style={{ gap: "16px" }}>
-      <div className="card">
-        <div className="card-title">Formulas</div>
-        {profileError && <div className="error">{profileError}</div>}
-        {formulasError && !formulasLoading && <div className="error">{formulasError}</div>}
-        {formulasLoading && <div className="muted">Loading formulas…</div>}
-        {!formulasLoading && formulas.length === 0 && (
-          <div className="muted">No formulas found.</div>
-        )}
-        <div className="stack sm">
-          {formulas.map(formula => (
-            <button
-              key={formula.id}
-              className={`btn ${formula.id === selectedId ? "primary" : "ghost"}`}
-              onClick={() => setSelectedId(formula.id)}
-            >
-              {formula.name || formula.title || `Formula ${formula.id}`}
-            </button>
-          ))}
-        </div>
-      </div>
+  const sections = [
+    { key: "depots", title: "Depots" },
+    { key: "companies", title: "Companies" },
+    { key: "platoons", title: "Platoons" },
+    { key: "squads", title: "Squads" },
+  ];
 
-      <div className="card">
-        <div className="card-title">Details</div>
-        {renderDetails()}
+  const grouped = sections.map(section => ({
+    ...section,
+    items: formulas.filter(f => (f.battle_type || "").toLowerCase() === section.key),
+  }));
+
+  return (
+    <div style={{ fontFamily: "Inter, system-ui, Arial, sans-serif" }}>
+      {createModal.open && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              padding: 20,
+              borderRadius: 12,
+              width: "min(420px, 90vw)",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <div className="card-title" style={{ margin: 0 }}>
+                New {createModal.battleType.replace(/s$/, "")} Formula
+              </div>
+              <button className="btn ghost" onClick={() => setCreateModal(prev => ({ ...prev, open: false }))}>
+                ✕
+              </button>
+            </div>
+            {createModal.error && <div className="error">{createModal.error}</div>}
+            <div className="stack sm">
+              <div className="stack xs">
+                <label className="label">Label</label>
+                <input
+                  type="text"
+                  value={createModal.label}
+                  onChange={e => setCreateModal(prev => ({ ...prev, label: e.target.value }))}
+                />
+              </div>
+              <div className="stack xs">
+                <label className="label">Effective Start Week</label>
+                <input
+                  type="text"
+                  value={createModal.start}
+                  onChange={e => setCreateModal(prev => ({ ...prev, start: e.target.value }))}
+                />
+              </div>
+              <div className="stack xs">
+                <label className="label">Effective End Week (optional)</label>
+                <input
+                  type="text"
+                  value={createModal.end}
+                  onChange={e => setCreateModal(prev => ({ ...prev, end: e.target.value }))}
+                />
+              </div>
+              <div className="stack xs">
+                <label className="label">Reason</label>
+                <textarea
+                  rows={3}
+                  value={createModal.reason}
+                  onChange={e => setCreateModal(prev => ({ ...prev, reason: e.target.value }))}
+                />
+              </div>
+              <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+                <button
+                  className="btn ghost"
+                  onClick={() => setCreateModal(prev => ({ ...prev, open: false }))}
+                  disabled={createModal.loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn primary"
+                  disabled={
+                    createModal.loading ||
+                    !createModal.label.trim() ||
+                    !createModal.start.trim() ||
+                    !createModal.reason.trim()
+                  }
+                  onClick={async () => {
+                    setCreateModal(prev => ({ ...prev, loading: true, error: "" }));
+                    const config = { metrics: getDefaultMetrics(createModal.battleType) };
+                    const { data, error } = await createDraft({
+                      battle_type: createModal.battleType,
+                      effective_start_week_key: createModal.start.trim(),
+                      effective_end_week_key: createModal.end.trim() || null,
+                      label: createModal.label.trim(),
+                      config,
+                      reason: createModal.reason.trim(),
+                    });
+                    if (error) {
+                      setCreateModal(prev => ({ ...prev, loading: false, error: error.message || "Failed to create draft" }));
+                      return;
+                    }
+                    setCreateModal({
+                      open: false,
+                      battleType: createModal.battleType,
+                      label: "",
+                      start: "",
+                      end: "",
+                      reason: "",
+                      loading: false,
+                      error: "",
+                    });
+                    await reloadFormulasAndSelect(data?.id);
+                  }}
+                >
+                  {createModal.loading ? "Creating…" : "Create"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="grid two" style={{ gap: "16px" }}>
+        <div className="card">
+          <div className="card-title">Formulas</div>
+          {profileError && <div className="error">{profileError}</div>}
+          {formulasError && !formulasLoading && <div className="error">{formulasError}</div>}
+          {formulasLoading && <div className="muted">Loading formulas…</div>}
+          {!formulasLoading && formulas.length === 0 && (
+            <div className="muted">No formulas found.</div>
+          )}
+          <div className="stack lg">
+            {grouped.map(section => (
+              <div key={section.key} className="stack sm" style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12 }}>
+                <div className="row between" style={{ alignItems: "center" }}>
+                  <div className="card-title" style={{ margin: 0 }}>{section.title}</div>
+                  {isSuperAdmin && (
+                    <button
+                      className="btn primary"
+                      onClick={() =>
+                        setCreateModal({
+                          open: true,
+                          battleType: section.key,
+                          label: "",
+                          start: "",
+                          end: "",
+                          reason: "",
+                          loading: false,
+                          error: "",
+                        })
+                      }
+                    >
+                      + New {section.title.replace(/s$/, "")} Formula
+                    </button>
+                  )}
+                </div>
+                <div className="stack xs">
+                  {section.items.map(formula => {
+                    const isSelected = formula.id === selectedId;
+                    const start = formula.effective_start_week_key || formula.start_week_key || "—";
+                    const end = formula.effective_end_week_key || formula.end_week_key || "∞";
+                    return (
+                      <button
+                        key={formula.id}
+                        className={`btn ${isSelected ? "primary" : "ghost"}`}
+                        onClick={() => setSelectedId(formula.id)}
+                        style={{ justifyContent: "flex-start" }}
+                      >
+                        <div className="stack xs" style={{ alignItems: "flex-start" }}>
+                          <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                            <span>{formula.label || "(Untitled)"}</span>
+                            <span className="badge">{formula.status || "unknown"}</span>
+                            <span className="muted">
+                              v{formula.version ?? formula.revision ?? "—"}
+                            </span>
+                          </div>
+                          <div className="muted" style={{ fontSize: 12 }}>
+                            {start} → {end || "∞"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {section.items.length === 0 && (
+                    <div className="muted">No formulas</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Details</div>
+          {renderDetails()}
+        </div>
       </div>
     </div>
   );
