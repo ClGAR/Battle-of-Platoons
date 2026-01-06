@@ -96,6 +96,7 @@ body {
   border-radius: 18px;
   overflow: hidden;
   width: 100%;
+  height: 20%;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
 }
 
@@ -158,6 +159,7 @@ body {
 .week-tabs {
   display: flex;
   flex-wrap: nowrap;
+  justify-content: center;
   gap: 10px;
   width: 100%;
   overflow: hidden;
@@ -314,29 +316,30 @@ body {
   align-items: flex-end;
   gap: 22px;
   flex-wrap: wrap;
-  margin: 22px 0 30px;
+  margin: 28px auto 34px;
 }
 
 .podium-item {
-  position: relative;
-  width: clamp(240px, 22vw, 320px);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .podium-card {
-  width: 100%;
-  background: #0b1770;
-  border-radius: 24px;
-  padding: 18px 16px 20px;
+  position: relative;
+  width: clamp(260px, 28vw, 340px);
+  max-width: 340px;
+  background: var(--blue-card);
+  border-radius: 26px;
+  padding: 18px 18px 22px;
   color: #fff;
   text-align: center;
-  box-shadow: 0 18px 40px rgba(13, 33, 99, 0.18);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .podium-card--winner {
@@ -351,13 +354,13 @@ body {
   box-shadow: 0 0 0 4px rgba(255, 122, 60, 0.7), 0 18px 40px rgba(13, 33, 99, 0.18);
 }
 
-.podium-item--rank-1 .podium-card { min-height: 270px; }
+.podium-item--rank-1 .podium-card { min-height: 280px; }
 .podium-item--rank-2 .podium-card { min-height: 240px; }
-.podium-item--rank-3 .podium-card { min-height: 220px; }
+.podium-item--rank-3 .podium-card { min-height: 215px; }
 
 .podium-item--rank-1 { transform: translateY(0); }
-.podium-item--rank-2 { transform: translateY(18px); }
-.podium-item--rank-3 { transform: translateY(36px); }
+.podium-item--rank-2 { transform: translateY(12px); }
+.podium-item--rank-3 { transform: translateY(22px); }
 
 .podium-rank-badge {
   position: absolute;
@@ -368,13 +371,14 @@ body {
   height: 34px;
   border-radius: 50%;
   background: #fff;
-  color: #0b1770;
+  color: var(--navy);
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
-  z-index: 2;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.18);
+  z-index: 5;
+  pointer-events: none;
 }
 
 .podium-avatar-wrapper {
@@ -422,8 +426,13 @@ body {
 }
 
 .podium-name {
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 0 6px;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
 .podium-subtext {
@@ -433,8 +442,12 @@ body {
 }
 
 .podium-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 13px;
   line-height: 1.5;
+  opacity: 0.95;
 }
 
 /* Table */
@@ -598,6 +611,19 @@ body {
   .week-tab {
     padding: 6px 9px;
     font-size: 12px;
+  }
+
+  .podium {
+    gap: 14px;
+  }
+
+  .podium-card {
+    width: min(92vw, 340px);
+  }
+
+  .podium-item--rank-2,
+  .podium-item--rank-3 {
+    transform: none;
   }
 
   .table-wrapper {

@@ -460,6 +460,7 @@ function App() {
   );
 }
 
+// Findings: the badge was outside the relative card wrapper so it could anchor to the page; podium-item was not consistently relative; width clamps were tight and placeholders squeezed layout.
 function Podium({ top3, view }) {
   const podiumItems = normalizePodiumItems(top3);
   if (!podiumItems.length) return null;
@@ -477,15 +478,17 @@ function Podium({ top3, view }) {
         );
 
         return (
-          <motion.div
+          <div
             key={item.key || item.id}
             className={mergeClassNames("podium-item", `podium-item--rank-${rank}`)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
           >
-            <div className="podium-rank-badge">{rank}</div>
-            <div className={accentClasses}>
+            <motion.div
+              className={accentClasses}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: index * 0.1 }}
+            >
+              <div className="podium-rank-badge">{rank}</div>
               <div className="podium-avatar-wrapper">
                 <div className="podium-avatar">
                   {item.avatarUrl ? (
@@ -504,8 +507,8 @@ function Podium({ top3, view }) {
                 <div>{item.leads} leads</div>
                 <div>{formatCurrencyPHP(item.sales)} sales</div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         );
       })}
     </div>
