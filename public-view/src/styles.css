@@ -3,6 +3,10 @@
   --blue-bg: #050f5a;
   --blue-card: #0b1aa5;
   --blue-soft: #eef1ff;
+  --navy: #000a5c;
+  --navy-2: #00084a;
+  --white: #ffffff;
+  --divider: rgba(255, 255, 255, 0.18);
   --gold: #ffd54a;
   --orange: #ff7a3c;
   --text-main: #151530;
@@ -79,30 +83,61 @@ body {
 /* Week + metrics */
 
 .week-metrics {
-  display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.4fr);
-  gap: 16px;
+  display: block;
+  margin-top: 18px;
   margin-bottom: 32px;
-  align-items: center;
 }
 
-.week-box {
-  background: #ffffff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 16px 20px;
+.topbar {
+  display: flex;
+  align-items: stretch;
+  background: var(--navy);
+  color: var(--white);
+  border-radius: 18px;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+}
+
+.topbar-segment {
+  flex: 1;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 78px;
+}
+
+.topbar-segment--weeks {
+  align-items: flex-start;
+  text-align: left;
+  gap: 8px;
+}
+
+.topbar-segment--metric {
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.topbar-divider {
+  width: 1px;
+  background: var(--divider);
 }
 
 .week-label {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.92;
+  color: var(--white);
 }
 
 .week-range {
-  font-size: 15px;
-  font-weight: 500;
-  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--white);
 }
 
 .week-tabs {
@@ -113,66 +148,44 @@ body {
 
 .week-tab {
   border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
   border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 13px;
-  background: var(--blue-soft);
-  color: var(--text-main);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.95;
+}
+
+.week-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .week-tab--active {
-  background: var(--blue-bg);
-  color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(5, 15, 90, 0.35);
+  background: #ffffff;
+  color: var(--navy);
+  opacity: 1;
 }
 
 .week-tab:disabled {
   opacity: 0.4;
   cursor: default;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Metric bar */
-
-.metric-bar {
-  display: flex;
-  background: #0b1770;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 18px 40px rgba(13, 33, 99, 0.18);
-  width: min(520px, 45vw);
-  min-height: 74px;
-  margin-left: auto;
-}
-
-.metric-segment {
-  flex: 1;
-  padding: 14px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.metric-segment + .metric-segment {
-  border-left: 1px solid rgba(255,255,255,0.18);
 }
 
 .metric-label {
   font-size: 12px;
-  color: rgba(255,255,255,0.85);
-  margin-bottom: 6px;
+  font-weight: 700;
+  opacity: 0.88;
   letter-spacing: 0.2px;
 }
 
 .metric-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0.2px;
 }
 
 /* View toggle */
@@ -470,18 +483,26 @@ body {
 
 /* Responsive */
 
-@media (max-width: 900px) {
-  .week-metrics {
-    grid-template-columns: 1fr;
+@media (max-width: 980px) {
+  .topbar {
+    flex-wrap: wrap;
   }
 
-  .metric-bar {
-    width: min(520px, 92vw);
-    margin: 14px auto 0;
+  .topbar-segment--weeks {
+    flex: 0 0 100%;
+  }
+
+  .topbar-segment--metric {
+    flex: 1 1 33.333%;
+    min-height: 70px;
+  }
+
+  .topbar-divider {
+    display: none;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .top-header {
     grid-template-columns: 1fr;
     row-gap: 8px;
@@ -492,16 +513,29 @@ body {
     justify-self: center;
   }
 
+  .topbar {
+    flex-direction: column;
+  }
+
+  .topbar-segment--weeks,
+  .topbar-segment--metric {
+    flex: 0 0 auto;
+    width: 100%;
+    align-items: flex-start;
+    text-align: left;
+  }
+
   .metric-value {
-    font-size: 20px;
+    font-size: 24px;
   }
 
-  .podium {
-    gap: 14px;
+  .week-tabs {
+    gap: 6px;
   }
 
-  .podium-item {
-    width: min(92vw, 360px);
+  .week-tab {
+    padding: 6px 9px;
+    font-size: 12px;
   }
 
   .table-wrapper {

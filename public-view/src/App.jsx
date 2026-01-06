@@ -356,53 +356,46 @@ function App() {
 
         {/* Week selector + metrics */}
         <section className="week-metrics">
-          <div className="week-box">
-            <div className="week-label">View Previous Updates :</div>
-            <div className="week-range">{weekRangeLabel}</div>
-            <div className="week-tabs">
-              {weekTabs.map((w) => (
-                <button
-                  key={w.key}
-                  className={
-                    "week-tab" + (w.key === activeWeek ? " week-tab--active" : "")
-                  }
-                  disabled={!w.enabled}
-                  onClick={() => w.enabled && setActiveWeek(w.key)}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="topbar">
+            <div className="topbar-segment topbar-segment--weeks">
+              <div className="week-label">View Previous Updates :</div>
+              <div className="week-range">{weekRangeLabel}</div>
 
-          <div className="metric-bar">
-            <motion.div
-              className="metric-segment"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
+              <div className="week-tabs">
+                {weekTabs.map((w) => (
+                  <button
+                    key={w.key}
+                    type="button"
+                    className={`week-tab ${activeWeek === w.key ? "week-tab--active" : ""}`}
+                    disabled={!w.enabled}
+                    onClick={() => w.enabled && setActiveWeek(w.key)}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="topbar-divider" aria-hidden="true"></div>
+
+            <div className="topbar-segment topbar-segment--metric">
               <div className="metric-label">{entitiesLabel}</div>
               <div className="metric-value">{metrics.entitiesCount}</div>
-            </motion.div>
-            <motion.div
-              className="metric-segment"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 0.05 }}
-            >
+            </div>
+
+            <div className="topbar-divider" aria-hidden="true"></div>
+
+            <div className="topbar-segment topbar-segment--metric">
               <div className="metric-label">Leads</div>
               <div className="metric-value">{metrics.totalLeads}</div>
-            </motion.div>
-            <motion.div
-              className="metric-segment"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
+            </div>
+
+            <div className="topbar-divider" aria-hidden="true"></div>
+
+            <div className="topbar-segment topbar-segment--metric">
               <div className="metric-label">Sales</div>
               <div className="metric-value">{formatCurrencyPHP(metrics.totalSales)}</div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
