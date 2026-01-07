@@ -574,12 +574,12 @@ function Podium({ top3, view }) {
       {podiumItems.map((item, index) => {
         const rank = item.rank ?? index + 1;
 
-          const accentClasses = mergeClassNames(
+          const cardClass = [
             "podium-card",
-            rank === 1 ? "podium-card--winner" : "",
-            rank === 1 ? "podium-card--gold" : "",
-            rank === 3 ? "podium-card--orange" : ""
-          );
+            rank === 1 && "podium-card--winner",
+            rank === 1 && "podium-card--gold",
+            rank === 3 && "podium-card--orange",
+          ].filter(Boolean).join(" ");
 
           return (
             <div
@@ -587,7 +587,7 @@ function Podium({ top3, view }) {
               className={mergeClassNames("podium-item", `podium-item--rank-${rank}`)}
             >
             <motion.div
-              className={accentClasses}
+              className={cardClass}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
