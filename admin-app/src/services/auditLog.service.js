@@ -4,6 +4,13 @@ const SCORING_TIMESTAMP_COLUMNS = ["created_at", "timestamp", "at"];
 const SCORING_ACTION_COLUMNS = ["action", "event"];
 const SCORING_ACTOR_COLUMNS = ["actor_id", "actor_uuid", "user_id", "actor"];
 
+function isUuid(value) {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.toString()
+  );
+}
+
 function isMissingColumn(error, column) {
   if (!error?.message || !column) return false;
   const message = error.message.toLowerCase();
@@ -109,9 +116,14 @@ export async function listFinalizedWeeks({ limit = 50, offset = 0 }) {
 
 export async function getProfilesByIds(userIds = []) {
   if (!Array.isArray(userIds) || userIds.length === 0) return [];
+  const uniqueIds = Array.from(new Set(userIds.map(id => id?.toString?.() ?? "").filter(isUuid)));
+  if (!uniqueIds.length) return [];
   const { data, error } = await supabase.rpc("get_user_emails_super_admin", {
-  user_ids: userIds,
-});
+    user_ids: uniqueIds,
+  });
   if (error) return [];
-  return data ?? [];
+  return (data ?? []).map(row => ({
+    id: row?.user_id ?? row?.id ?? null,
+    email: row?.email ?? null,
+  }));
 }
