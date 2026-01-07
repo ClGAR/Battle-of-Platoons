@@ -118,9 +118,9 @@ export async function getProfilesByIds(userIds = []) {
   if (!Array.isArray(userIds) || userIds.length === 0) return [];
   const uniqueIds = Array.from(new Set(userIds.map(id => id?.toString?.() ?? "").filter(isUuid)));
   if (!uniqueIds.length) return [];
-  const { data, error } = await supabase.rpc("get_user_emails_super_admin", {
-    user_ids: uniqueIds,
-  });
+  const { data, error } = await supabase.rpc("get_user_emails_super_admin_json", {
+  payload: { user_ids: uniqueIds },
+});
   if (error) return [];
   return (data ?? []).map(row => ({
     id: row?.user_id ?? row?.id ?? null,
