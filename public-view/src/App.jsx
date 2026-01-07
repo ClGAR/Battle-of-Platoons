@@ -631,7 +631,7 @@ function LeaderboardTable({ rows, view, roleFilter }) {
       : view === "depots"
       ? "Depot"
       : view === "platoon"
-      ? "Upline"
+      ? "Leader Name"
       : view === "companies"
       ? "Company"
       : "Commander";
@@ -645,7 +645,7 @@ function LeaderboardTable({ rows, view, roleFilter }) {
           <tr>
             <th>Rank</th>
             <th>{labelHeader}</th>
-            {showUpline}
+            {showUpline && <th>Upline</th>}
             <th>Leads</th>
             <th>Payins</th>
             <th>Sales</th>
