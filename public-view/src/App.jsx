@@ -486,7 +486,7 @@ function App() {
             <div className="topbar-divider" aria-hidden="true"></div>
 
             <div className="topbar-segment topbar-segment--metric">
-              <div className="metric-label">Total Payins</div>
+              <div className="metric-label">Payins</div>
               <div className="metric-value">{formatCurrencyPHP(metrics.totalPayins)}</div>
             </div>
           </div>
