@@ -582,6 +582,7 @@ button {
 @media (max-width: 980px) {
   .topbar {
     flex-wrap: nowrap; /* keep one row */
+    min-height: 80px;
   }
 
   .topbar-segment--weeks {
@@ -631,7 +632,7 @@ button {
   }
 }
 
-@media (max-width: 742px) {
+@media (max-width: 745px) {
   .week-tabs {
     max-width: 100%;
     flex-wrap: wrap;
@@ -639,12 +640,21 @@ button {
   }
 }
 
-@media (max-width: 702px) {
+@media (max-width: 710px) {
   .topbar {
     flex-direction: column;
   }
   .topbar-metrics .topbar-divider { 
     display:none; 
+  }
+
+  .topbar-metrics{ 
+    min-height: 6vh; 
+  }
+
+  .topbar-segment--metric {
+    padding: 0 12px 12px 12px;
+    min-height: 4vh;
   }
 
   .week-tabs {
