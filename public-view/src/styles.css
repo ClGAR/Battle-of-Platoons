@@ -610,57 +610,108 @@ button {
 
 @media (max-width: 640px) {
   .podium {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* keep 3 across */
+    column-gap: 12px;
+    row-gap: 0;
+    justify-items: center;
+    align-items: end;
+    margin: 16px 0 18px;
   }
 
+  .podium-item {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* remove wide clamp on phones/tablet */
   .podium-card {
-    width: min(100%, 360px);
+    width: 100%;
+    max-width: none;
+    padding: 14px 12px 16px;
+    border-radius: 18px;
+    gap: 6px;
   }
 
-  .podium-item--rank-1 .podium-card,
-  .podium-item--rank-2 .podium-card,
-  .podium-item--rank-3 .podium-card {
-    min-height: 0;
-  }
+  /* heights scale down but keep podium hierarchy */
+  .podium-item--rank-1 .podium-card { min-height: clamp(220px, 34vh, 280px); }
+  .podium-item--rank-2 .podium-card { min-height: clamp(200px, 32vh, 260px); }
+  .podium-item--rank-3 .podium-card { min-height: clamp(190px, 30vh, 250px); }
 
+  /* aligned baseline */
   .podium-item--rank-1,
   .podium-item--rank-2,
-  .podium-item--rank-3 {
-    transform: translateY(0);
-  }
+  .podium-item--rank-3 { transform: translateY(0); }
 
+  /* compact badge/avatar */
   .podium-rank-badge {
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    top: -10px;
   }
 
   .podium-avatar {
-    width: 36px;
-    height: 36px;
-  }
-}
-
-@media (max-width: 400px) {
-  .podium {
-    gap: 12px;
+    width: 30px;
+    height: 30px;
   }
 
-  .podium-card {
-    width: min(100%, 320px);
-    padding: 16px 14px 18px;
-  }
-
+  /* readable phone text */
   .podium-name {
-    font-size: 14px;
+    font-size: 12.5px;
+    line-height: 1.15;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* prevent name wrapping */
   }
 
   .podium-subtext,
   .podium-stats {
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.25;
   }
 }
+
+@media (max-width: 400px) {
+  /* smallest supported width: tighten spacing */
+  .podium {
+    column-gap: 10px;
+    margin: 14px 0 16px;
+  }
+
+  .podium-card {
+    padding: 12px 10px 14px;
+    border-radius: 16px;
+    gap: 5px;
+  }
+
+  /* slightly smaller heights for 400px screens */
+  .podium-item--rank-1 .podium-card { min-height: clamp(210px, 32vh, 260px); }
+  .podium-item--rank-2 .podium-card { min-height: clamp(190px, 30vh, 240px); }
+  .podium-item--rank-3 .podium-card { min-height: clamp(180px, 28vh, 230px); }
+
+  .podium-rank-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 10.5px;
+    top: -9px;
+  }
+
+  .podium-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .podium-name {
+    font-size: 12px;
+  }
+
+  .podium-subtext,
+  .podium-stats {
+    font-size: 10.5px;
+  }
+}
+
 
 /* Table */
 
