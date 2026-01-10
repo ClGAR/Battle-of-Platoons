@@ -304,7 +304,7 @@ button {
 }
 
 .view-pill--active {
-  background: var(--blue-bg);
+  background: var(--blue-card);
   color: #ffffff;
 }
 
@@ -350,7 +350,7 @@ button {
 .section-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--blue-bg);
+  color: var(--blue-card);
 }
 
 .formula-summary {
@@ -867,7 +867,7 @@ button {
   }
 
   .page-date {
-    justify-self: center;
+    justify-self: right;
   }
 }
 

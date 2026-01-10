@@ -339,14 +339,18 @@ function App() {
       : displayView === "depots"
       ? "Depots"
       : displayView === "platoon"
-      ? "Uplines"
+      ? "Platoons"
       : "Leaders";
 
   const title =
     displayView === "platoon"
-      ? "Upline Rankings"
+      ? "Platoon Rankings"
+      : activeView === "leaders" && leaderRoleFilter === "team"
+      ? "Team Leader Rankings"
       : displayView === "leaders"
-      ? "Platoon Leader Rankings"
+      ? "Squad Leader Rankings"
+      : displayView === "teams"
+      ? "Team Rankings"
       : displayView === "depots"
       ? "Depot Rankings"
       : displayView === "companies"
