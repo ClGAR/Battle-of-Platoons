@@ -584,13 +584,6 @@ button {
   .podium-card {
     width: clamp(210px, 30vw, 300px);
   }
-
-  .podium-item--rank-1 .podium-card { min-height: 260px; }
-  .podium-item--rank-2 .podium-card { min-height: 230px; }
-  .podium-item--rank-3 .podium-card { min-height: 215px; }
-
-  .podium-item--rank-2 { transform: translateY(0); }
-  .podium-item--rank-3 { transform: translateY(0); }
 }
 
 @media (max-width: 820px) {
@@ -607,16 +600,6 @@ button {
     grid-column: 1 / -1;
     order: 0;
   }
-
-  .podium-item--rank-2 { order: 1; }
-  .podium-item--rank-3 { order: 2; }
-
-  .podium-item--rank-1 .podium-card { min-height: 240px; }
-  .podium-item--rank-2 .podium-card { min-height: 220px; }
-  .podium-item--rank-3 .podium-card { min-height: 210px; }
-
-  .podium-item--rank-2 { transform: translateY(0); }
-  .podium-item--rank-3 { transform: translateY(0); }
 
   .podium-rank-badge {
     width: 30px;
