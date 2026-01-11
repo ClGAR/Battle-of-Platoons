@@ -398,7 +398,7 @@ button {
 .faq-fab{
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: 35px;
   z-index: 9999;
   display: inline-flex;
   align-items: center;
@@ -512,6 +512,7 @@ button {
 }
 
 @media (max-width: 979px){
+
   .faq-backdrop{
     justify-content: center;
     align-items: flex-end;
@@ -535,10 +536,6 @@ button {
     max-height: 75vh;
     max-height: 75dvh;
     border-radius: 18px 18px 0 0;
-  }
-  .faq-fab{
-    right: 12px;
-    bottom: 12px;
   }
 }
 
