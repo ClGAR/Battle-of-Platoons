@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { getLeaderboard, probeRawDataVisibility } from "./services/leaderboard.service";
 import { supabaseConfigured, supabaseConfigError, getSupabaseProjectRef } from "./services/supabase";
@@ -222,6 +222,9 @@ function App() {
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [probe, setProbe] = useState({ status: "idle", count: null, error: null });
+  const [isFaqOpen, setIsFaqOpen] = useState(false);
+  const faqButtonRef = useRef(null);
+  const faqCloseRef = useRef(null);
   const projectRef = getSupabaseProjectRef();
 
   useEffect(() => {
@@ -369,6 +372,42 @@ function App() {
       console.warn("Active formula week mismatch", { selectedWeekKey, activeFormula });
     }
   }, [activeFormula, selectedWeekKey]);
+
+  const openFaq = () => {
+    setIsFaqOpen(true);
+  };
+
+  const closeFaq = () => {
+    setIsFaqOpen(false);
+    if (faqButtonRef.current) {
+      faqButtonRef.current.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (!isFaqOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") closeFaq();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFaqOpen]);
+
+  useEffect(() => {
+    if (!isFaqOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isFaqOpen]);
+
+  useEffect(() => {
+    if (!isFaqOpen) return;
+    if (faqCloseRef.current) {
+      faqCloseRef.current.focus();
+    }
+  }, [isFaqOpen]);
 
   if (!supabaseConfigured) {
     statusBlocks.push(
@@ -541,26 +580,6 @@ function App() {
             </div>
           )}
           <h2 className="section-title">{title}</h2>
-          <div className="formula-summary">
-            <div className="formula-title">
-              Formula: {formulaTitle}
-            </div>
-            <div className="formula-details">
-              {activeFormula ? (
-                formulaMetrics.length ? (
-                  formulaMetrics.map((m) => (
-                    <span key={m.key || m.divisor} className="formula-pill">
-                      {m.key || "Metric"}: ÷{m.divisor} • Max {m.maxPoints}
-                    </span>
-                  ))
-                ) : (
-                  <span className="formula-warning">Formula metrics are not configured.</span>
-                )
-              ) : (
-                <span className="formula-warning">No published formula for this week.</span>
-              )}
-            </div>
-          </div>
       </section>
 
         {/* Loading / error */}
@@ -584,6 +603,104 @@ function App() {
           </>
         )}
       </div>
+
+      {!isFaqOpen && (
+        <button ref={faqButtonRef} className="faq-fab" onClick={openFaq} aria-label="Open FAQ">
+          <span className="faq-fab__icon">?</span>
+        </button>
+      )}
+
+      {isFaqOpen && (
+        <div className="faq-backdrop" onClick={closeFaq} aria-hidden="true">
+          <div
+            className="faq-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="faq-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="faq-header">
+              <div className="faq-header__title">
+                <span className="faq-header__icon">?</span>
+                <span id="faq-title">FAQ</span>
+              </div>
+              <button
+                ref={faqCloseRef}
+                className="faq-close"
+                onClick={closeFaq}
+                aria-label="Close FAQ"
+              >
+                x
+              </button>
+            </div>
+
+            <div className="faq-body">
+              <details className="faq-acc" open>
+                <summary className="faq-acc__summary">Formulas</summary>
+
+                <details className="faq-acc faq-acc--nested" open>
+                  <summary className="faq-acc__summary">Current Formula</summary>
+                  <div className="formula-summary formula-summary--modal">
+                    <div className="formula-title">
+                      Formula: {formulaTitle}
+                    </div>
+                    <div className="formula-details">
+                      {activeFormula ? (
+                        formulaMetrics.length ? (
+                          formulaMetrics.map((m) => (
+                            <span key={m.key || m.divisor} className="formula-pill">
+                              {m.key || "Metric"}: Aú{m.divisor} ƒ?› Max {m.maxPoints}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="formula-warning">Formula metrics are not configured.</span>
+                        )
+                      ) : (
+                        <span className="formula-warning">No published formula for this week.</span>
+                      )}
+                    </div>
+                  </div>
+                </details>
+
+                <details className="faq-acc faq-acc--nested">
+                  <summary className="faq-acc__summary">Depots</summary>
+                  <div className="faq-acc__content">Placeholder text</div>
+                </details>
+
+                <details className="faq-acc faq-acc--nested">
+                  <summary className="faq-acc__summary">Leaders</summary>
+                  <div className="faq-acc__content">Placeholder text</div>
+                </details>
+
+                <details className="faq-acc faq-acc--nested">
+                  <summary className="faq-acc__summary">Commanders</summary>
+                  <div className="faq-acc__content">Placeholder text</div>
+                </details>
+
+                <details className="faq-acc faq-acc--nested">
+                  <summary className="faq-acc__summary">Companies</summary>
+                  <div className="faq-acc__content">Placeholder text</div>
+                </details>
+              </details>
+
+              <details className="faq-acc">
+                <summary className="faq-acc__summary">Scoring</summary>
+                <div className="faq-acc__content">Placeholder</div>
+              </details>
+
+              <details className="faq-acc">
+                <summary className="faq-acc__summary">Data Rules</summary>
+                <div className="faq-acc__content">Placeholder</div>
+              </details>
+
+              <details className="faq-acc">
+                <summary className="faq-acc__summary">Troubleshooting</summary>
+                <div className="faq-acc__content">Placeholder</div>
+              </details>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
