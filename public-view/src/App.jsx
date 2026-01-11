@@ -33,6 +33,25 @@ function formatCurrencyPHP(n) {
   });
 }
 
+function formatNumber(n) {
+  return (Number(n) || 0).toLocaleString("en-US");
+}
+
+function formatMetricLabel(metricKey) {
+  if (!metricKey) return "Metric";
+  return metricKey
+    .toString()
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getFormulaExample(divisor) {
+  const value = Number(divisor) || 0;
+  if (value <= 0) return null;
+  const example = Math.round(value / 2);
+  return `Example: ${formatNumber(example)} / ${formatNumber(value)}`;
+}
+
 function toYMD(d) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -426,7 +445,7 @@ function App() {
         <ul style={{ marginTop: 6, paddingLeft: 18, fontSize: 13 }}>
           <li>RLS publishable filter might hide all rows (approved=true OR matched depot/company totals).</li>
           <li>No approved/matched company rows exist for this project yet.</li>
-          <li>Project ref mismatchâ€”verify you are using the correct Supabase env vars (see debug banner).</li>
+          <li>Project ref mismatch - verify you are using the correct Supabase env vars (see debug banner).</li>
         </ul>
         <div style={{ fontSize: 13, marginTop: 4 }}>
           Next actions: approve one company row and re-test; verify <code>raw_data</code> RLS for source='company' &amp;
@@ -584,7 +603,7 @@ function App() {
 
         {/* Loading / error */}
         {loading && (
-          <div className="status-text">Loading live rankingsâ€¦</div>
+          <div className="status-text">Loading live rankings...</div>
         )}
         {error && <div className="status-text status-text--error">{error}</div>}
 
@@ -647,11 +666,22 @@ function App() {
                     <div className="formula-details">
                       {activeFormula ? (
                         formulaMetrics.length ? (
-                          formulaMetrics.map((m) => (
-                            <span key={m.key || m.divisor} className="formula-pill">
-                              {m.key || "Metric"}: Aú{m.divisor} ƒ?› Max {m.maxPoints}
-                            </span>
-                          ))
+                          formulaMetrics.map((m) => {
+                            const label = formatMetricLabel(m.key);
+                            const divisorText = formatNumber(m.divisor);
+                            const maxPointsText = formatNumber(m.maxPoints);
+                            const exampleText = getFormulaExample(m.divisor);
+                            return (
+                              <span key={m.key || m.divisor} className="formula-pill">
+                                <div className="formula-pill__main">
+                                  {label}: Divide by {divisorText} (Max {maxPointsText} pts)
+                                </div>
+                                {exampleText && (
+                                  <div className="formula-pill__example">{exampleText}</div>
+                                )}
+                              </span>
+                            );
+                          })
                         ) : (
                           <span className="formula-warning">Formula metrics are not configured.</span>
                         )
