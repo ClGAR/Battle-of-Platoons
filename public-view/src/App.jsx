@@ -16,6 +16,7 @@ const VIEW_TABS = [
 ];
 
 const ENTITY_KEYS = ["depots", "leaders", "commanders", "companies"];
+const FORMULA_TYPES = ["depots", "companies", "commanders", "platoons", "squads", "teams"];
 
 const LEADER_ROLE_TABS = [
   { key: "platoon", label: "Platoon" },
@@ -226,8 +227,6 @@ function getBattleTypeForView(viewKey, roleFilter) {
 }
 
 function getFaqBattleType(entityKey) {
-  if (entityKey === "commanders") return "companies";
-  if (entityKey === "companies") return "companies";
   return entityKey || "leaders";
 }
 
@@ -252,7 +251,7 @@ function App() {
   const [data, setData] = useState(null);
   const [probe, setProbe] = useState({ status: "idle", count: null, error: null });
   const [isFaqOpen, setIsFaqOpen] = useState(false);
-  const [formulasByEntity, setFormulasByEntity] = useState({});
+  const [formulasByType, setFormulasByType] = useState({});
   const faqButtonRef = useRef(null);
   const faqCloseRef = useRef(null);
   const projectRef = getSupabaseProjectRef();
@@ -400,9 +399,29 @@ function App() {
     }
   }, [activeFormula, selectedWeekKey]);
 
+  function pickFormulaWithFallback(map, primaryKey, fallbackKey) {
+    return map?.[primaryKey] ?? map?.[fallbackKey] ?? null;
+  }
+
+  // Reviewed formula types: depots, companies, platoons, squads are present; commanders, teams missing today.
+  const resolvedFormulas = {
+    depots: { formula: formulasByType.depots, fallbackLabel: null },
+    companies: { formula: formulasByType.companies, fallbackLabel: null },
+    commanders: {
+      formula: pickFormulaWithFallback(formulasByType, "commanders", "companies"),
+      fallbackLabel: formulasByType.commanders ? null : formulasByType.companies ? "Companies" : null,
+    },
+    platoons: { formula: formulasByType.platoons, fallbackLabel: null },
+    squads: { formula: formulasByType.squads, fallbackLabel: null },
+    teams: {
+      formula: pickFormulaWithFallback(formulasByType, "teams", "squads"),
+      fallbackLabel: formulasByType.teams ? null : formulasByType.squads ? "Squads" : null,
+    },
+  };
+
   useEffect(() => {
     if (!supabaseConfigured || !faqWeekKey) {
-      setFormulasByEntity({});
+      setFormulasByType({});
       return;
     }
 
@@ -410,23 +429,23 @@ function App() {
 
     async function loadFormulas() {
       const entries = await Promise.all(
-        ENTITY_KEYS.map(async (entityKey) => {
-          const battleType = getFaqBattleType(entityKey);
+        FORMULA_TYPES.map(async (typeKey) => {
+          const battleType = getFaqBattleType(typeKey);
           try {
             const { data: formulaData, error } = await getActiveFormula(battleType, faqWeekKey);
             if (error) throw error;
-            return [entityKey, formulaData ?? null];
+            return [typeKey, formulaData ?? null];
           } catch (err) {
             if (import.meta.env.DEV) {
-              console.warn("FAQ formula load failed", { entityKey, battleType, err });
+              console.warn("FAQ formula load failed", { typeKey, battleType, err });
             }
-            return [entityKey, null];
+            return [typeKey, null];
           }
         })
       );
 
       if (!cancelled) {
-        setFormulasByEntity(Object.fromEntries(entries));
+        setFormulasByType(Object.fromEntries(entries));
       }
     }
 
@@ -436,7 +455,8 @@ function App() {
     };
   }, [faqWeekKey, supabaseConfigured]);
 
-  const renderFormulaBlock = (formula) => {
+  const renderFormulaBlock = (resolved) => {
+    const formula = resolved?.formula ?? null;
     if (!formula) {
       return <div className="formula-text__empty">No published formula for this week.</div>;
     }
@@ -449,6 +469,11 @@ function App() {
     return (
       <div className="formula-text">
         <div className="formula-text__title">Published: {title}</div>
+        {resolved?.fallbackLabel && (
+          <div className="formula-text__fallback">
+            Using {resolved.fallbackLabel} formula (fallback)
+          </div>
+        )}
         <div className="formula-text__metrics">
           {metrics.length ? (
             metrics.map((m) => {
@@ -740,22 +765,36 @@ function App() {
 
                 <details className="faq-acc faq-acc--nested" open>
                   <summary className="faq-acc__summary">Depots</summary>
-                  {renderFormulaBlock(formulasByEntity.depots)}
+                  {renderFormulaBlock(resolvedFormulas.depots)}
                 </details>
 
                 <details className="faq-acc faq-acc--nested">
                   <summary className="faq-acc__summary">Leaders</summary>
-                  {renderFormulaBlock(formulasByEntity.leaders)}
+
+                  <details className="faq-acc faq-acc--nested">
+                    <summary className="faq-acc__summary">Platoon</summary>
+                    {renderFormulaBlock(resolvedFormulas.platoons)}
+                  </details>
+
+                  <details className="faq-acc faq-acc--nested">
+                    <summary className="faq-acc__summary">Squad</summary>
+                    {renderFormulaBlock(resolvedFormulas.squads)}
+                  </details>
+
+                  <details className="faq-acc faq-acc--nested">
+                    <summary className="faq-acc__summary">Team</summary>
+                    {renderFormulaBlock(resolvedFormulas.teams)}
+                  </details>
                 </details>
 
                 <details className="faq-acc faq-acc--nested">
                   <summary className="faq-acc__summary">Commanders</summary>
-                  {renderFormulaBlock(formulasByEntity.commanders)}
+                  {renderFormulaBlock(resolvedFormulas.commanders)}
                 </details>
 
                 <details className="faq-acc faq-acc--nested">
                   <summary className="faq-acc__summary">Companies</summary>
-                  {renderFormulaBlock(formulasByEntity.companies)}
+                  {renderFormulaBlock(resolvedFormulas.companies)}
                 </details>
               </details>
 
