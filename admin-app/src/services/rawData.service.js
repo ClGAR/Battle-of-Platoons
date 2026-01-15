@@ -621,7 +621,10 @@ export async function saveRawDataRows(validRows, { mode = "warn", source = "comp
         insertedCount += batch.length;
       }
     } else {
-      const { data, error } = await supabase.from("raw_data").upsert(batch, { onConflict: "id" }).select();
+      const { data, error } = await supabase
+        .from("raw_data")
+        .upsert(batch, { onConflict: "date_real,agent_id,source,leads_depot_id,sales_depot_id" })
+        .select();
       if (error) {
         errors.push(mapWeekFinalizedMessage(error.message || "Unknown database error"));
       } else {
