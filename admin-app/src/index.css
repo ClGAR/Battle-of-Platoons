@@ -221,6 +221,7 @@ body{
   align-items: center;
   gap: 12px;
   min-width: 0;
+  position: relative;
 }
 
 .admin-topbar__avatar{
@@ -266,19 +267,61 @@ body{
   margin-top: 2px;
 }
 
-.admin-topbar__logout{
+.admin-topbar__trigger{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
   border: none;
-  background: #eef1ff;
-  color: var(--blue2);
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
+  padding: 6px 8px;
+  border-radius: 12px;
+  color: inherit;
 }
 
-.admin-topbar__logout:hover{
-  background: #dfe4ff;
+.admin-topbar__trigger:hover{
+  background: #f4f5ff;
+}
+
+.admin-topbar__chevron{
+  font-size: 14px;
+  transition: transform .2s ease;
+  color: var(--muted);
+}
+
+.admin-topbar__chevron.is-open{
+  transform: rotate(180deg);
+}
+
+.admin-topbar__menu{
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  min-width: 140px;
+  padding: 6px;
+  z-index: 1000;
+}
+
+.admin-topbar__menu-item{
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-topbar__menu-item:hover{
+  background: #f5f6ff;
+}
+
+.admin-topbar__menu-item--logout{
+  color: #b01818;
 }
 
 /* ----- Common UI blocks ----- */
@@ -815,7 +858,7 @@ textarea.input:focus{
   .admin-topbar__title{ font-size: 3.8vw; }
   .admin-topbar__name{ font-size: 0.9rem; }
   .admin-topbar__role{ font-size: 0.75rem; }
-  .admin-topbar__logout{ padding: 7px 10px; }
+  .admin-topbar__trigger{ padding: 5px 8px; }
 }
 
 /* ----- Upload page ----- */
