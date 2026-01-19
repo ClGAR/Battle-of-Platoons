@@ -30,11 +30,6 @@ export default function TopBar({
     <header className="admin-topbar">
       <div className="admin-topbar__inner">
         <div className="admin-topbar__content">
-          <div className="admin-topbar__brand">
-            <img src="/gg-logo.png" alt="Grinders Guild logo" className="admin-topbar__logo" />
-            <div className="admin-topbar__brand-text">Grinders Guild</div>
-          </div>
-
           <div className="admin-topbar__title">{title}</div>
 
           <div className="admin-topbar__user">
