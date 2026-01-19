@@ -42,6 +42,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sb-header">
+        <img src="/gg-logo.png" alt="Grinders Guild logo" className="sb-logo" />
         <div className="sb-brand">Grinders Guild</div>
       </div>
 
